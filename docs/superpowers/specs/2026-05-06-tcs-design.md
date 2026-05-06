@@ -393,9 +393,34 @@ public async Task<IActionResult> Create(...) { ... }
 
 `ExpiryScanService : BackgroundService`：
 
-- 應用程式啟動時掃一次
-- 之後每 24 小時掃一次
-- 透過注入的 `IClock` 抽象取得「今天」，方便單元測試
+- **觸發時機**：**每日凌晨 00:00:00（Asia/Taipei, UTC+8）執行一次**；應用程式啟動時**不立即掃描**，等待到當日下一個 00:00 才執行
+- **生命週期**：隨應用程式 process 啟動而啟動、隨 process 結束而結束；不依賴外部排程器（無 SQL Agent、無 Cron）
+- **時區處理**：以 `TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei")` 顯式指定，避免容器或主機時區設定差異造成偏移
+- **Clock 抽象**：透過注入的 `IClock` 取得當前時刻（測試時可注入 `FakeClock` 模擬時間推進）
+
+**排程演算法**：
+
+```csharp
+protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+    var tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
+
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        // 計算「下一個 Asia/Taipei 凌晨 00:00」與當前 UTC 的時間差
+        var nowLocal = TimeZoneInfo.ConvertTime(_clock.UtcNow, tz);
+        var nextMidnightLocal = nowLocal.Date.AddDays(1);          // 隔日 00:00
+        var nextMidnightUtc = TimeZoneInfo.ConvertTimeToUtc(nextMidnightLocal, tz);
+        var delay = nextMidnightUtc - _clock.UtcNow;
+
+        try { await Task.Delay(delay, stoppingToken); }
+        catch (OperationCanceledException) { return; }
+
+        if (!stoppingToken.IsCancellationRequested)
+            await ScanOnceAsync(stoppingToken);
+    }
+}
+```
 
 **掃描演算法**（依 4-6 定義的週期概念）：
 
@@ -476,6 +501,10 @@ public async Task<IActionResult> Create(...) { ... }
 ## 12. 環境與技術
 
 - .NET 8 / Razor Pages / Clean Architecture（Web ← Core → Infrastructure）
+- **部署平台：.NET Aspire**（AppHost 編排，本作業以單一服務身分加入 Aspire 解決方案）
+  - **副本數固定為 1**（`WithReplicas(1)`）— `ExpiryScanService` 為定時任務，多副本會導致重複掃描；若未來需要水平擴展，須改採分散式鎖或 leader election
+  - Service Discovery 使用 Aspire 內建（連 SQL Server 等資源透過 connection string reference）
+  - Observability 透過 Aspire Dashboard 取得 OpenTelemetry trace / log / metric
 - SQL Server 版本 `10.0.1600.22` = SQL Server 2008 RTM；分頁採 `ROW_NUMBER()` 不用 `OFFSET/FETCH`；連線啟用 TLS 1.0
 - `char` 欄位均加 `IsFixedLength()` + `IsUnicode(false)`
 - JSON `PropertyNamingPolicy = null`（PascalCase）
