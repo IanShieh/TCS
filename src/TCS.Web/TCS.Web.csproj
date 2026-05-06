@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TCS.Core\TCS.Core.csproj" />
     <ProjectReference Include="..\TCS.Infrastructure\TCS.Infrastructure.csproj" />
+    <ProjectReference Include="..\TCS.ServiceDefaults\TCS.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,7 +1,9 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/TCS.AppHost/TCS.AppHost.csproj" />
     <Project Path="src/TCS.Core/TCS.Core.csproj" />
     <Project Path="src/TCS.Infrastructure/TCS.Infrastructure.csproj" />
+    <Project Path="src/TCS.ServiceDefaults/TCS.ServiceDefaults.csproj" />
     <Project Path="src/TCS.Web/TCS.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">

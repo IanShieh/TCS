@@ -1,0 +1,13 @@
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\bin\Debug\net8.0\TCS.ServiceDefaults.deps.json
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\bin\Debug\net8.0\TCS.ServiceDefaults.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\bin\Debug\net8.0\TCS.ServiceDefaults.pdb
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.csproj.AssemblyReference.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.AssemblyInfoInputs.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.AssemblyInfo.cs
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.csproj.CoreCompileInputs.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.sourcelink.json
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\refint\TCS.ServiceDefaults.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\TCS.ServiceDefaults.pdb
+C:\Users\ian2213\source\repos\TCS\src\TCS.ServiceDefaults\obj\Debug\net8.0\ref\TCS.ServiceDefaults.dll
