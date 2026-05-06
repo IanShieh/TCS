@@ -1,0 +1,18 @@
+#!/bin/sh
+# gitleaks pre-commit hook — 偵測敏感資料
+# 此檔案由 git 追蹤，dotnet build 時自動啟用 (core.hooksPath)
+
+if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks protect --staged --verbose
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "[BLOCKED] gitleaks detected sensitive data in staged files."
+        echo "Fix the issues above before committing."
+        echo "To skip this check (emergency only): git commit --no-verify"
+        echo ""
+        exit 1
+    fi
+else
+    echo "[WARN] gitleaks not installed — skipping pre-commit scan"
+    echo "       Install: winget install gitleaks"
+fi

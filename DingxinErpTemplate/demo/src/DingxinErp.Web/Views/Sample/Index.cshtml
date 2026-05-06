@@ -1,0 +1,287 @@
+@{
+    ViewData["Title"] = "範例作業";
+}
+
+@* ===== 搜尋區 ===== *@
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <h5 class="mb-0"><i class="bi bi-table"></i> 範例作業</h5>
+            </div>
+            <div class="col">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control form-control-sm"
+                           placeholder="搜尋單別、單號、客戶代號..." />
+                    <button class="btn btn-outline-primary btn-sm" id="btnSearch" title="搜尋 (F5)">
+                        <i class="bi bi-search"></i> 搜尋
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btnClearSearch" title="清除搜尋">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-success btn-sm" id="btnCreate" title="新增 (Ctrl+N)">
+                    <i class="bi bi-plus-lg"></i> 新增
+                </button>
+                <button class="btn btn-warning btn-sm" id="btnEdit" disabled title="編輯 (Ctrl+E)">
+                    <i class="bi bi-pencil"></i> 編輯
+                </button>
+                <button class="btn btn-danger btn-sm" id="btnDelete" disabled title="刪除 (Delete)">
+                    <i class="bi bi-trash"></i> 刪除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== 單頭表格 ===== *@
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>單頭資料</strong>
+        <span id="headerCount" class="badge bg-secondary ms-2">0 筆</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm mb-0" id="headerTable">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:40px"><input type="checkbox" id="checkAll" /></th>
+                    <th class="sortable" data-sort="TA001">單別 <i class="bi bi-arrow-down-up text-muted sort-icon"></i></th>
+                    <th class="sortable" data-sort="TA002">單號 <i class="bi bi-arrow-down-up text-muted sort-icon"></i></th>
+                    <th class="sortable" data-sort="TA003">日期 <i class="bi bi-arrow-down-up text-muted sort-icon"></i></th>
+                    <th class="sortable" data-sort="TA004">客戶/供應商 <i class="bi bi-arrow-down-up text-muted sort-icon"></i></th>
+                    <th class="sortable" data-sort="TA005">簡稱 <i class="bi bi-arrow-down-up text-muted sort-icon"></i></th>
+                    <th>狀態</th>
+                    <th>單身筆數</th>
+                </tr>
+            </thead>
+            <tbody id="headerTableBody">
+                <tr id="emptyRow">
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-6"></i>
+                        <p class="mt-2">尚無資料，請按「新增」建立</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @* 分頁 *@
+    <div class="card-footer py-2" id="paginationContainer"></div>
+</div>
+
+@* ===== 單身區塊 (含 CRUD 工具列 + 表格) ===== *@
+<div class="card mb-3" id="detailCard" style="display:none;">
+    <div class="card-header py-2 bg-info bg-opacity-10 d-flex align-items-center flex-wrap gap-2">
+        <strong><i class="bi bi-list-nested"></i> 單身明細</strong>
+        <span class="text-muted" id="detailInfo"></span>
+        <span id="detailCount" class="badge bg-info">0 筆</span>
+        <div class="ms-auto d-flex gap-1">
+            <button class="btn btn-success btn-sm" id="btnCreateDetail" disabled>
+                <i class="bi bi-plus-lg"></i> 新增明細
+            </button>
+            <button class="btn btn-warning btn-sm" id="btnEditDetail" disabled>
+                <i class="bi bi-pencil"></i> 編輯明細
+            </button>
+            <button class="btn btn-danger btn-sm" id="btnDeleteDetail" disabled>
+                <i class="bi bi-trash"></i> 刪除明細
+            </button>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm mb-0" id="detailTable">
+            <thead class="table-info">
+                <tr>
+                    <th style="width:40px"><input type="checkbox" id="detailCheckAll" /></th>
+                    <th>序號</th>
+                    <th>品號</th>
+                    <th>品名</th>
+                    <th class="text-end">數量</th>
+                    <th class="text-end">單價</th>
+                    <th class="text-end">金額</th>
+                    <th>備註</th>
+                </tr>
+            </thead>
+            <tbody id="detailTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@* ===== 單頭新增/編輯 Modal ===== *@
+<div class="modal fade" id="headerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="headerModalTitle">新增</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="headerForm">
+                    <input type="hidden" id="formMode" value="create" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">單別 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="f_TA001" maxlength="4" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">單號 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="f_TA002" maxlength="11" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">日期 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="f_TA003" maxlength="8"
+                                   placeholder="yyyyMMdd" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">狀態</label>
+                            <select class="form-select" id="f_TA007">
+                                <option value="Y">Y - 有效</option>
+                                <option value="N">N - 作廢</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">客戶/供應商代號 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="f_TA004" maxlength="10" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">客戶/供應商簡稱</label>
+                            <input type="text" class="form-control" id="f_TA005" maxlength="30" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">備註</label>
+                            <input type="text" class="form-control" id="f_TA006" maxlength="255" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnSave">
+                    <i class="bi bi-check-lg"></i> 儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== 單身新增/編輯 Modal ===== *@
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalTitle">新增明細</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="detailForm">
+                    <input type="hidden" id="detailFormMode" value="create" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">序號 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="fd_TB003" maxlength="4" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">品號 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="fd_TB004" maxlength="20" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">品名</label>
+                            <input type="text" class="form-control" id="fd_TB005" maxlength="50" />
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">數量</label>
+                            <input type="number" class="form-control" id="fd_TB006" step="0.0001" value="0" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">單價</label>
+                            <input type="number" class="form-control" id="fd_TB007" step="0.0001" value="0" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">金額</label>
+                            <input type="number" class="form-control" id="fd_TB008" step="0.0001" value="0" readonly />
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">備註</label>
+                            <input type="text" class="form-control" id="fd_TB009" maxlength="255" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnSaveDetail">
+                    <i class="bi bi-check-lg"></i> 儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== 單頭刪除確認 Modal ===== *@
+<div class="modal fade" id="deleteHeaderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> 確認刪除</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>確定要刪除選取的 <strong id="deleteCount">0</strong> 筆單頭資料嗎？</p>
+                <p class="text-danger small">此操作將同時刪除相關的單身明細，且無法復原。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                    <i class="bi bi-trash"></i> 確認刪除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== 單身刪除確認 Modal ===== *@
+<div class="modal fade" id="deleteDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> 確認刪除明細</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>確定要刪除選取的 <strong id="deleteDetailCount">0</strong> 筆明細資料嗎？</p>
+                <p class="text-danger small">此操作無法復原。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDeleteDetail">
+                    <i class="bi bi-trash"></i> 確認刪除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/master-detail.js"></script>
+    <script>
+        // ★ 初始化：API 端點 + 頁面設定
+        const API_BASE = '/api/Sample';
+        const PAGE_SIZE = 10;
+        let currentPage = 1;
+        let selectedRows = [];
+
+        $(document).ready(function () {
+            loadHeaders(1);
+            initCrudButtons(API_BASE);
+            initMasterDetail(API_BASE);
+            initSortable('headerTable');
+            initKeyboardShortcuts();
+        });
+    </script>
+}

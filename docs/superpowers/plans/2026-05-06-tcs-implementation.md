@@ -434,6 +434,2282 @@ git commit -m "feat: add IClock abstraction and TrainingType enum"
 
 ---
 
+## Phase 2 — Domain Entities, EF Core Config & Migration
+
+### Task 5 — Core entities
+
+**Goal:** Define all domain entities in `TCS.Core`.
+
+**Steps:**
+
+1. Create `TCS.Core/Entities/LicenseMaster.cs`:
+```csharp
+public class LicenseMaster
+{
+    public string LicenseType { get; set; } = null!;
+    public string LicenseName { get; set; } = null!;
+    public decimal? Hours { get; set; }
+    public int? Years { get; set; }
+    public string? ParentLicenseType { get; set; }
+    public LicenseMaster? Parent { get; set; }
+    public ICollection<LicenseMaster> Children { get; set; } = new List<LicenseMaster>();
+    public ICollection<LicensePlantRequirement> PlantRequirements { get; set; } = new List<LicensePlantRequirement>();
+    public ICollection<TrainingHeader> TrainingHeaders { get; set; } = new List<TrainingHeader>();
+}
+```
+
+2. Create `TCS.Core/Entities/LicensePlantRequirement.cs`:
+```csharp
+public class LicensePlantRequirement
+{
+    public string LicenseType { get; set; } = null!;
+    public string PlantId { get; set; } = null!;
+    public LicenseMaster LicenseMaster { get; set; } = null!;
+}
+```
+
+3. Create `TCS.Core/Entities/TrainingHeader.cs`:
+```csharp
+public class TrainingHeader
+{
+    public int Id { get; set; }
+    public string EmployeeId { get; set; } = null!;
+    public string LicenseType { get; set; } = null!;
+    public decimal RequiredHours { get; set; }
+    public LicenseMaster LicenseMaster { get; set; } = null!;
+    public ICollection<TrainingDetail> Details { get; set; } = new List<TrainingDetail>();
+}
+```
+
+4. Create `TCS.Core/Entities/TrainingDetail.cs`:
+```csharp
+public class TrainingDetail
+{
+    public int Id { get; set; }
+    public int TrainingHeaderId { get; set; }
+    public DateTime TrainingDate { get; set; }
+    public int TrainingType { get; set; }
+    public decimal Hours { get; set; }
+    public decimal Flag { get; set; }
+    public TrainingHeader Header { get; set; } = null!;
+}
+```
+
+5. Create `TCS.Core/Entities/Employee.cs` (view, no key):
+```csharp
+public class Employee
+{
+    public string MV001 { get; set; } = null!; // EmployeeId
+    public string MV002 { get; set; } = null!; // Name
+    public string? MV004 { get; set; }          // Dept
+    public string? MV021 { get; set; }          // PlantId
+}
+```
+
+6. Create `TCS.Core/Entities/Plant.cs` (view, no key):
+```csharp
+public class Plant
+{
+    public string MB001 { get; set; } = null!; // PlantId
+    public string MB002 { get; set; } = null!; // PlantName
+}
+```
+
+7. Commit:
+```
+feat(core): add domain entities
+```
+
+---
+
+### Task 6 — EF Core configurations
+
+**Goal:** Configure all entities for SQL Server 2008 RTM in `TCS.Infrastructure`.
+
+**Steps:**
+
+1. Create `TCS.Infrastructure/Persistence/Configurations/LicenseMasterConfiguration.cs`:
+```csharp
+public class LicenseMasterConfiguration : IEntityTypeConfiguration<LicenseMaster>
+{
+    public void Configure(EntityTypeBuilder<LicenseMaster> builder)
+    {
+        builder.ToTable("LicenseMaster");
+        builder.HasKey(e => e.LicenseType);
+        builder.Property(e => e.LicenseType).IsFixedLength(false).IsUnicode(false).HasMaxLength(20);
+        builder.Property(e => e.LicenseName).HasMaxLength(100);
+        builder.Property(e => e.Hours).HasColumnType("decimal(5,1)");
+        builder.Property(e => e.Years);
+        builder.Property(e => e.ParentLicenseType).IsFixedLength(false).IsUnicode(false).HasMaxLength(20);
+
+        builder.HasOne(e => e.Parent)
+            .WithMany(e => e.Children)
+            .HasForeignKey(e => e.ParentLicenseType)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(e => e.PlantRequirements)
+            .WithOne(e => e.LicenseMaster)
+            .HasForeignKey(e => e.LicenseType)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(e => e.TrainingHeaders)
+            .WithOne(e => e.LicenseMaster)
+            .HasForeignKey(e => e.LicenseType)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+```
+
+2. Create `TCS.Infrastructure/Persistence/Configurations/LicensePlantRequirementConfiguration.cs`:
+```csharp
+public class LicensePlantRequirementConfiguration : IEntityTypeConfiguration<LicensePlantRequirement>
+{
+    public void Configure(EntityTypeBuilder<LicensePlantRequirement> builder)
+    {
+        builder.ToTable("LicensePlantRequirement");
+        builder.HasKey(e => new { e.LicenseType, e.PlantId });
+        builder.Property(e => e.LicenseType).IsFixedLength(false).IsUnicode(false).HasMaxLength(20);
+        builder.Property(e => e.PlantId).IsFixedLength(false).IsUnicode(false).HasMaxLength(10);
+    }
+}
+```
+
+3. Create `TCS.Infrastructure/Persistence/Configurations/TrainingHeaderConfiguration.cs`:
+```csharp
+public class TrainingHeaderConfiguration : IEntityTypeConfiguration<TrainingHeader>
+{
+    public void Configure(EntityTypeBuilder<TrainingHeader> builder)
+    {
+        builder.ToTable("TrainingHeader");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.EmployeeId).IsFixedLength(false).IsUnicode(false).HasMaxLength(20);
+        builder.Property(e => e.LicenseType).IsFixedLength(false).IsUnicode(false).HasMaxLength(20);
+        builder.Property(e => e.RequiredHours).HasColumnType("decimal(5,1)");
+        builder.HasIndex(e => new { e.EmployeeId, e.LicenseType }).IsUnique();
+
+        builder.HasMany(e => e.Details)
+            .WithOne(e => e.Header)
+            .HasForeignKey(e => e.TrainingHeaderId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+```
+
+4. Create `TCS.Infrastructure/Persistence/Configurations/TrainingDetailConfiguration.cs`:
+```csharp
+public class TrainingDetailConfiguration : IEntityTypeConfiguration<TrainingDetail>
+{
+    public void Configure(EntityTypeBuilder<TrainingDetail> builder)
+    {
+        builder.ToTable("TrainingDetail");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.TrainingDate).HasColumnType("date");
+        builder.Property(e => e.Hours).HasColumnType("decimal(5,1)");
+        builder.Property(e => e.Flag).HasColumnType("decimal(1,0)");
+    }
+}
+```
+
+5. Commit:
+```
+feat(infra): add EF Core entity configurations
+```
+
+---
+
+### Task 7 — AppDbContext
+
+**Goal:** Wire up `AppDbContext` with all entity sets.
+
+**Steps:**
+
+1. Create `TCS.Infrastructure/Persistence/AppDbContext.cs`:
+```csharp
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<LicenseMaster> LicenseMasters => Set<LicenseMaster>();
+    public DbSet<LicensePlantRequirement> LicensePlantRequirements => Set<LicensePlantRequirement>();
+    public DbSet<TrainingHeader> TrainingHeaders => Set<TrainingHeader>();
+    public DbSet<TrainingDetail> TrainingDetails => Set<TrainingDetail>();
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Plant> Plants => Set<Plant>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        modelBuilder.Entity<Employee>().ToView("PHRSMV").HasNoKey();
+        modelBuilder.Entity<Plant>().ToView("CMSMB").HasNoKey();
+    }
+}
+```
+
+2. Commit:
+```
+feat(infra): add AppDbContext
+```
+
+---
+
+### Task 8 — PaginationHelper
+
+**Goal:** Implement in-memory pagination helper (required for SQL Server 2008 which lacks OFFSET/FETCH).
+
+**Steps:**
+
+1. Create `TCS.Core/Helpers/PaginationHelper.cs`:
+```csharp
+public static class PaginationHelper
+{
+    public static PagedResult<T> Paginate<T>(IReadOnlyList<T> allItems, int page, int pageSize)
+    {
+        var total = allItems.Count;
+        var items = allItems.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new PagedResult<T>(items, total, page, pageSize);
+    }
+}
+
+public record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize)
+{
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
+}
+```
+
+2. Commit:
+```
+feat(core): add PaginationHelper for in-memory paging (SQL 2008 compat)
+```
+
+---
+
+### Task 9 — IRepository interfaces
+
+**Goal:** Define repository contracts in `TCS.Core`.
+
+**Steps:**
+
+1. Create `TCS.Core/Interfaces/ILicenseRepository.cs`:
+```csharp
+public interface ILicenseRepository
+{
+    Task<List<LicenseMaster>> GetAllAsync(CancellationToken ct = default);
+    Task<LicenseMaster?> GetByIdAsync(string licenseType, CancellationToken ct = default);
+    Task<bool> ExistsAsync(string licenseType, CancellationToken ct = default);
+    Task AddAsync(LicenseMaster entity, CancellationToken ct = default);
+    Task UpdateAsync(LicenseMaster entity, CancellationToken ct = default);
+    Task DeleteAsync(string licenseType, CancellationToken ct = default);
+    Task<bool> HasTrainingHeadersAsync(string licenseType, CancellationToken ct = default);
+}
+```
+
+2. Create `TCS.Core/Interfaces/ITrainingRepository.cs`:
+```csharp
+public interface ITrainingRepository
+{
+    Task<List<TrainingHeader>> GetHeadersAsync(string? employeeId, string? licenseType, CancellationToken ct = default);
+    Task<TrainingHeader?> GetHeaderByIdAsync(int id, bool includeDetails = false, CancellationToken ct = default);
+    Task<TrainingHeader?> GetHeaderAsync(string employeeId, string licenseType, CancellationToken ct = default);
+    Task AddHeaderAsync(TrainingHeader entity, CancellationToken ct = default);
+    Task UpdateHeaderAsync(TrainingHeader entity, CancellationToken ct = default);
+    Task DeleteHeaderAsync(int id, CancellationToken ct = default);
+    Task<TrainingDetail?> GetDetailByIdAsync(int id, CancellationToken ct = default);
+    Task AddDetailAsync(TrainingDetail entity, CancellationToken ct = default);
+    Task UpdateDetailAsync(TrainingDetail entity, CancellationToken ct = default);
+    Task DeleteDetailAsync(int id, CancellationToken ct = default);
+}
+```
+
+3. Create `TCS.Core/Interfaces/IReadOnlyRepository.cs`:
+```csharp
+public interface IEmployeeRepository
+{
+    Task<List<Employee>> GetAllAsync(CancellationToken ct = default);
+    Task<Employee?> GetByIdAsync(string employeeId, CancellationToken ct = default);
+}
+
+public interface IPlantRepository
+{
+    Task<List<Plant>> GetAllAsync(CancellationToken ct = default);
+}
+```
+
+4. Commit:
+```
+feat(core): add repository interfaces
+```
+
+---
+
+### Task 10 — Initial EF migration
+
+**Goal:** Generate the initial database migration.
+
+**Steps:**
+
+1. Run migration (from repo root):
+```
+dotnet ef migrations add InitialCreate --project TCS.Infrastructure --startup-project TCS.Web
+```
+
+2. Verify the generated migration file creates tables: `LicenseMaster`, `LicensePlantRequirement`, `TrainingHeader`, `TrainingDetail`.
+
+3. Confirm `Employee` and `Plant` are NOT in the migration (they map to existing views).
+
+4. Commit:
+```
+feat(infra): add initial EF Core migration
+```
+
+---
+
+## Phase 3 — DTOs & Mapping
+
+### Task 11 — Request/Response DTOs
+
+**Goal:** Define all DTOs in `TCS.Core/Dtos/`.
+
+**Steps:**
+
+1. Create `TCS.Core/Dtos/LicenseMasterDto.cs`:
+```csharp
+public record LicenseMasterDto(
+    string LicenseType,
+    string LicenseName,
+    decimal? Hours,
+    int? Years,
+    string? ParentLicenseType,
+    bool IsParentType
+);
+
+public record CreateLicenseMasterRequest(
+    string LicenseType,
+    string LicenseName,
+    decimal? Hours,
+    int? Years,
+    string? ParentLicenseType
+);
+
+public record UpdateLicenseMasterRequest(
+    string LicenseName,
+    decimal? Hours,
+    int? Years,
+    string? ParentLicenseType
+);
+```
+
+2. Create `TCS.Core/Dtos/TrainingHeaderDto.cs`:
+```csharp
+public record TrainingHeaderDto(
+    int Id,
+    string EmployeeId,
+    string EmployeeName,
+    string LicenseType,
+    string LicenseName,
+    decimal RequiredHours,
+    DateTime? LatestAcquireDate,
+    DateTime? LatestRetrainDate,
+    DateTime? NextReviewDate,
+    decimal AccumulatedHours,
+    decimal RemainingHours,
+    string OverallStatus   // 未取得 / 通過 / 進行中 / 已過期
+);
+
+public record CreateTrainingHeaderRequest(
+    string EmployeeId,
+    string LicenseType
+);
+```
+
+3. Create `TCS.Core/Dtos/TrainingDetailDto.cs`:
+```csharp
+public record TrainingDetailDto(
+    int Id,
+    int TrainingHeaderId,
+    DateTime TrainingDate,
+    int TrainingType,
+    decimal Hours,
+    decimal Flag,
+    bool ShouldBeExpired
+);
+
+public record CreateTrainingDetailRequest(
+    int TrainingHeaderId,
+    DateTime TrainingDate,
+    int TrainingType,
+    decimal Hours
+);
+
+public record UpdateTrainingDetailRequest(
+    DateTime TrainingDate,
+    int TrainingType,
+    decimal Hours
+);
+```
+
+4. Create `TCS.Core/Dtos/LicensePlantRequirementDto.cs`:
+```csharp
+public record LicensePlantRequirementDto(string LicenseType, string PlantId);
+
+public record UpsertPlantRequirementsRequest(string LicenseType, List<string> PlantIds);
+```
+
+5. Create `TCS.Core/Dtos/EmployeeDto.cs` and `PlantDto.cs`:
+```csharp
+public record EmployeeDto(string EmployeeId, string Name, string? Dept, string? PlantId);
+public record PlantDto(string PlantId, string PlantName);
+```
+
+6. Commit:
+```
+feat(core): add request/response DTOs
+```
+
+---
+
+### Task 12 — MappingExtensions
+
+**Goal:** Implement `ToDto()` mapping methods including `TrainingHeaderDto` derived field computation.
+
+**Steps:**
+
+1. Create `TCS.Core/Mapping/MappingExtensions.cs`:
+```csharp
+public static class MappingExtensions
+{
+    public static LicenseMasterDto ToDto(this LicenseMaster e) => new(
+        e.LicenseType, e.LicenseName, e.Hours, e.Years, e.ParentLicenseType,
+        IsParentType(e.LicenseType));
+
+    public static bool IsParentType(string lt) =>
+        !lt.Contains('.') && int.TryParse(lt.Trim(), out _);
+
+    public static TrainingHeaderDto ToDto(
+        this TrainingHeader header,
+        Employee? employee,
+        IReadOnlyList<TrainingDetail> details,
+        IExpiryCalculator expiryCalc,
+        DateOnly today)
+    {
+        var acquires = details
+            .Where(d => d.TrainingType == 1)
+            .OrderBy(d => d.TrainingDate)
+            .ToList();
+
+        var latestAcquire = acquires.LastOrDefault()?.TrainingDate;
+        var latestRetrain = details
+            .Where(d => d.TrainingType == 2)
+            .OrderByDescending(d => d.TrainingDate)
+            .FirstOrDefault()?.TrainingDate;
+
+        // Next review date: latest acquire + Years (if defined)
+        DateTime? nextReview = latestAcquire.HasValue && header.LicenseMaster?.Years.HasValue == true
+            ? latestAcquire.Value.AddYears(header.LicenseMaster.Years!.Value)
+            : null;
+
+        // Current cycle: from latest acquire to now (or next acquire if exists)
+        decimal accumulated = 0;
+        if (latestAcquire.HasValue)
+        {
+            var cycleStart = latestAcquire.Value;
+            accumulated = details
+                .Where(d => d.TrainingDate >= cycleStart)
+                .Sum(d => d.Hours);
+        }
+
+        var remaining = Math.Max(0, header.RequiredHours - accumulated);
+
+        // Overall status (四態)
+        string status;
+        if (!acquires.Any())
+            status = "未取得";
+        else if (nextReview.HasValue && nextReview.Value.Date < today.ToDateTime(TimeOnly.MinValue))
+            status = "已過期";
+        else if (accumulated >= header.RequiredHours)
+            status = "通過";
+        else
+            status = "進行中";
+
+        return new TrainingHeaderDto(
+            header.Id,
+            header.EmployeeId,
+            employee?.MV002 ?? header.EmployeeId,
+            header.LicenseType,
+            header.LicenseMaster?.LicenseName ?? header.LicenseType,
+            header.RequiredHours,
+            latestAcquire,
+            latestRetrain,
+            nextReview,
+            accumulated,
+            remaining,
+            status);
+    }
+
+    public static TrainingDetailDto ToDto(this TrainingDetail d, bool shouldBeExpired) =>
+        new(d.Id, d.TrainingHeaderId, d.TrainingDate, d.TrainingType, d.Hours, d.Flag, shouldBeExpired);
+
+    public static EmployeeDto ToDto(this Employee e) =>
+        new(e.MV001, e.MV002, e.MV004, e.MV021);
+
+    public static PlantDto ToDto(this Plant p) =>
+        new(p.MB001, p.MB002);
+}
+```
+
+2. Commit:
+```
+feat(core): add MappingExtensions with TrainingHeaderDto projection
+```
+
+---
+
+## Phase 4 — Validation
+
+### Task 13 — FluentValidation validators (sync rules)
+
+**Goal:** Implement validators for all write request types.
+
+**Steps:**
+
+1. Create `TCS.Core/Validators/CreateLicenseMasterValidator.cs`:
+```csharp
+public class CreateLicenseMasterValidator : AbstractValidator<CreateLicenseMasterRequest>
+{
+    public CreateLicenseMasterValidator()
+    {
+        RuleFor(x => x.LicenseType).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.LicenseName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Hours).GreaterThan(0).When(x => x.Hours.HasValue);
+        RuleFor(x => x.Years).GreaterThan(0).When(x => x.Years.HasValue);
+    }
+}
+```
+
+2. Create `TCS.Core/Validators/UpdateLicenseMasterValidator.cs`:
+```csharp
+public class UpdateLicenseMasterValidator : AbstractValidator<UpdateLicenseMasterRequest>
+{
+    public UpdateLicenseMasterValidator()
+    {
+        RuleFor(x => x.LicenseName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Hours).GreaterThan(0).When(x => x.Hours.HasValue);
+        RuleFor(x => x.Years).GreaterThan(0).When(x => x.Years.HasValue);
+    }
+}
+```
+
+3. Create `TCS.Core/Validators/CreateTrainingHeaderValidator.cs`:
+```csharp
+public class CreateTrainingHeaderValidator : AbstractValidator<CreateTrainingHeaderRequest>
+{
+    public CreateTrainingHeaderValidator()
+    {
+        RuleFor(x => x.EmployeeId).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.LicenseType).NotEmpty().MaximumLength(20);
+    }
+}
+```
+
+4. Create `TCS.Core/Validators/CreateTrainingDetailValidator.cs`:
+```csharp
+public class CreateTrainingDetailValidator : AbstractValidator<CreateTrainingDetailRequest>
+{
+    public CreateTrainingDetailValidator()
+    {
+        RuleFor(x => x.TrainingHeaderId).GreaterThan(0);
+        RuleFor(x => x.TrainingDate).NotEmpty().LessThanOrEqualTo(DateTime.Today);
+        RuleFor(x => x.TrainingType).InclusiveBetween(1, 2);
+        RuleFor(x => x.Hours).GreaterThan(0);
+    }
+}
+```
+
+5. Create `TCS.Core/Validators/UpdateTrainingDetailValidator.cs`:
+```csharp
+public class UpdateTrainingDetailValidator : AbstractValidator<UpdateTrainingDetailRequest>
+{
+    public UpdateTrainingDetailValidator()
+    {
+        RuleFor(x => x.TrainingDate).NotEmpty().LessThanOrEqualTo(DateTime.Today);
+        RuleFor(x => x.TrainingType).InclusiveBetween(1, 2);
+        RuleFor(x => x.Hours).GreaterThan(0);
+    }
+}
+```
+
+6. Commit:
+```
+feat(core): add FluentValidation validators
+```
+
+---
+
+### Task 14 — Async validators (DB existence checks)
+
+**Goal:** Add async validators that verify referenced entities exist.
+
+**Steps:**
+
+1. Create `TCS.Core/Validators/CreateLicenseMasterAsyncValidator.cs`:
+```csharp
+public class CreateLicenseMasterAsyncValidator : AbstractValidator<CreateLicenseMasterRequest>
+{
+    public CreateLicenseMasterAsyncValidator(ILicenseRepository repo)
+    {
+        RuleFor(x => x.LicenseType)
+            .MustAsync(async (lt, ct) => !await repo.ExistsAsync(lt, ct))
+            .WithMessage("LicenseType already exists.");
+
+        RuleFor(x => x.ParentLicenseType)
+            .MustAsync(async (parent, ct) => parent == null || await repo.ExistsAsync(parent, ct))
+            .WithMessage("ParentLicenseType does not exist.")
+            .When(x => x.ParentLicenseType != null);
+    }
+}
+```
+
+2. Create `TCS.Core/Validators/CreateTrainingDetailAsyncValidator.cs`:
+```csharp
+public class CreateTrainingDetailAsyncValidator : AbstractValidator<CreateTrainingDetailRequest>
+{
+    public CreateTrainingDetailAsyncValidator(ITrainingRepository repo)
+    {
+        RuleFor(x => x.TrainingHeaderId)
+            .MustAsync(async (id, ct) => await repo.GetHeaderByIdAsync(id, ct: ct) != null)
+            .WithMessage("TrainingHeader not found.");
+    }
+}
+```
+
+3. Register all validators with `services.AddValidatorsFromAssembly(typeof(CreateLicenseMasterValidator).Assembly)` in the DI setup (will be done in Task 27 `Program.cs`).
+
+4. Commit:
+```
+feat(core): add async FluentValidation validators
+```
+
+---
+
+## Phase 5 — Expiry Calculator
+
+### Task 15 — IExpiryCalculator + ExpiryCalculator + tests
+
+**Goal:** Implement the expiry calculation logic and verify with unit tests.
+
+**Steps:**
+
+1. Create `TCS.Core/Interfaces/IExpiryCalculator.cs`:
+```csharp
+public interface IExpiryCalculator
+{
+    IReadOnlyList<(TrainingDetail Detail, bool ShouldBeExpired)> ComputeExpiry(
+        IReadOnlyList<TrainingDetail> details,
+        decimal requiredHours,
+        int? years,
+        DateOnly today);
+}
+```
+
+2. Create `TCS.Core/Services/ExpiryCalculator.cs`:
+```csharp
+public class ExpiryCalculator : IExpiryCalculator
+{
+    public IReadOnlyList<(TrainingDetail, bool)> ComputeExpiry(
+        IReadOnlyList<TrainingDetail> details,
+        decimal requiredHours,
+        int? years,
+        DateOnly today)
+    {
+        var acquires = details
+            .Where(d => d.TrainingType == 1)
+            .OrderBy(d => d.TrainingDate)
+            .ToList();
+
+        if (!acquires.Any() || years == null)
+            return details.Select(d => (d, false)).ToList();
+
+        var results = new List<(TrainingDetail, bool)>();
+        var todayDt = today.ToDateTime(TimeOnly.MinValue);
+
+        for (int i = 0; i < acquires.Count; i++)
+        {
+            var cycleStart = acquires[i].TrainingDate;
+            var cycleEnd = acquires[i].TrainingDate.AddYears(years.Value);
+            if (i + 1 < acquires.Count)
+                cycleEnd = new[] { cycleEnd, acquires[i + 1].TrainingDate }.Min();
+
+            var inCycle = details
+                .Where(d => d.TrainingDate >= cycleStart && d.TrainingDate < cycleEnd)
+                .ToList();
+
+            var hoursInCycle = inCycle.Sum(d => d.Hours);
+            var cycleExpired = cycleEnd < todayDt && hoursInCycle < requiredHours;
+
+            foreach (var d in inCycle)
+                results.Add((d, cycleExpired));
+        }
+
+        // Details before first acquire are never expired
+        var firstAcquire = acquires.First().TrainingDate;
+        foreach (var d in details.Where(d => d.TrainingDate < firstAcquire))
+            results.Add((d, false));
+
+        return results;
+    }
+}
+```
+
+3. Create `TCS.Tests/ExpiryCalculatorTests.cs`:
+```csharp
+public class ExpiryCalculatorTests
+{
+    private readonly ExpiryCalculator _calc = new();
+    private static TrainingDetail MakeDetail(int id, DateTime date, int type, decimal hours) =>
+        new() { Id = id, TrainingDate = date, TrainingType = type, Hours = hours };
+
+    [Fact]
+    public void NoAcquire_AllNotExpired()
+    {
+        var details = new[] { MakeDetail(1, new DateTime(2020, 1, 1), 2, 8m) };
+        var result = _calc.ComputeExpiry(details, 16m, 2, DateOnly.FromDateTime(DateTime.Today));
+        Assert.All(result, r => Assert.False(r.ShouldBeExpired));
+    }
+
+    [Fact]
+    public void CurrentCycle_NotExpired()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var acquire = MakeDetail(1, DateTime.Today.AddYears(-1), 1, 0m);
+        var training = MakeDetail(2, DateTime.Today.AddMonths(-6), 2, 16m);
+        var result = _calc.ComputeExpiry(new[] { acquire, training }, 16m, 2, today);
+        Assert.All(result, r => Assert.False(r.ShouldBeExpired));
+    }
+
+    [Fact]
+    public void PastCycle_InsufficientHours_Expired()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var acquire = MakeDetail(1, today.ToDateTime(TimeOnly.MinValue).AddYears(-3), 1, 0m);
+        var training = MakeDetail(2, today.ToDateTime(TimeOnly.MinValue).AddYears(-3).AddMonths(1), 2, 4m);
+        var result = _calc.ComputeExpiry(new[] { acquire, training }, 16m, 2, today);
+        Assert.All(result, r => Assert.True(r.ShouldBeExpired));
+    }
+
+    [Fact]
+    public void PastCycle_SufficientHours_NotExpired()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var acquire = MakeDetail(1, today.ToDateTime(TimeOnly.MinValue).AddYears(-3), 1, 0m);
+        var training = MakeDetail(2, today.ToDateTime(TimeOnly.MinValue).AddYears(-3).AddMonths(1), 2, 20m);
+        var result = _calc.ComputeExpiry(new[] { acquire, training }, 16m, 2, today);
+        Assert.All(result, r => Assert.False(r.ShouldBeExpired));
+    }
+
+    [Fact]
+    public void MultipleAcquires_EachCycleIndependent()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var acq1 = MakeDetail(1, today.ToDateTime(TimeOnly.MinValue).AddYears(-4), 1, 0m);
+        var tr1 = MakeDetail(2, today.ToDateTime(TimeOnly.MinValue).AddYears(-4).AddMonths(1), 2, 4m);
+        var acq2 = MakeDetail(3, today.ToDateTime(TimeOnly.MinValue).AddYears(-1), 1, 0m);
+        var tr2 = MakeDetail(4, today.ToDateTime(TimeOnly.MinValue).AddMonths(-6), 2, 20m);
+        var result = _calc.ComputeExpiry(new[] { acq1, tr1, acq2, tr2 }, 16m, 2, today);
+        var dict = result.ToDictionary(r => r.Detail.Id, r => r.ShouldBeExpired);
+        Assert.True(dict[1]);  // cycle 1 expired
+        Assert.True(dict[2]);  // cycle 1 expired
+        Assert.False(dict[3]); // cycle 2 not expired
+        Assert.False(dict[4]); // cycle 2 not expired
+    }
+}
+```
+
+4. Commit:
+```
+feat(core): add IExpiryCalculator + ExpiryCalculator + unit tests
+```
+
+---
+
+## Phase 6 — Repository Implementations
+
+### Task 16 — LicenseRepository
+
+**Goal:** Implement `ILicenseRepository` in `TCS.Infrastructure`.
+
+**Steps:**
+
+1. Create `TCS.Infrastructure/Persistence/Repositories/LicenseRepository.cs`:
+```csharp
+public class LicenseRepository : ILicenseRepository
+{
+    private readonly AppDbContext _db;
+    public LicenseRepository(AppDbContext db) => _db = db;
+
+    public Task<List<LicenseMaster>> GetAllAsync(CancellationToken ct = default) =>
+        _db.LicenseMasters.Include(l => l.PlantRequirements).ToListAsync(ct);
+
+    public Task<LicenseMaster?> GetByIdAsync(string licenseType, CancellationToken ct = default) =>
+        _db.LicenseMasters.Include(l => l.PlantRequirements)
+            .FirstOrDefaultAsync(l => l.LicenseType == licenseType, ct);
+
+    public Task<bool> ExistsAsync(string licenseType, CancellationToken ct = default) =>
+        _db.LicenseMasters.AnyAsync(l => l.LicenseType == licenseType, ct);
+
+    public async Task AddAsync(LicenseMaster entity, CancellationToken ct = default)
+    {
+        _db.LicenseMasters.Add(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateAsync(LicenseMaster entity, CancellationToken ct = default)
+    {
+        _db.LicenseMasters.Update(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(string licenseType, CancellationToken ct = default)
+    {
+        var entity = await GetByIdAsync(licenseType, ct)
+            ?? throw new KeyNotFoundException(licenseType);
+        _db.LicenseMasters.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public Task<bool> HasTrainingHeadersAsync(string licenseType, CancellationToken ct = default) =>
+        _db.TrainingHeaders.AnyAsync(t => t.LicenseType == licenseType, ct);
+}
+```
+
+2. Commit:
+```
+feat(infra): add LicenseRepository
+```
+
+---
+
+### Task 17 — TrainingRepository + EmployeeRepository + PlantRepository
+
+**Goal:** Implement remaining repositories.
+
+**Steps:**
+
+1. Create `TCS.Infrastructure/Persistence/Repositories/TrainingRepository.cs`:
+```csharp
+public class TrainingRepository : ITrainingRepository
+{
+    private readonly AppDbContext _db;
+    public TrainingRepository(AppDbContext db) => _db = db;
+
+    public async Task<List<TrainingHeader>> GetHeadersAsync(string? employeeId, string? licenseType, CancellationToken ct = default)
+    {
+        var q = _db.TrainingHeaders.Include(h => h.LicenseMaster).AsQueryable();
+        if (!string.IsNullOrEmpty(employeeId)) q = q.Where(h => h.EmployeeId == employeeId);
+        if (!string.IsNullOrEmpty(licenseType)) q = q.Where(h => h.LicenseType == licenseType);
+        return await q.ToListAsync(ct);
+    }
+
+    public Task<TrainingHeader?> GetHeaderByIdAsync(int id, bool includeDetails = false, CancellationToken ct = default)
+    {
+        var q = _db.TrainingHeaders.Include(h => h.LicenseMaster).AsQueryable();
+        if (includeDetails) q = q.Include(h => h.Details);
+        return q.FirstOrDefaultAsync(h => h.Id == id, ct);
+    }
+
+    public Task<TrainingHeader?> GetHeaderAsync(string employeeId, string licenseType, CancellationToken ct = default) =>
+        _db.TrainingHeaders.FirstOrDefaultAsync(h => h.EmployeeId == employeeId && h.LicenseType == licenseType, ct);
+
+    public async Task AddHeaderAsync(TrainingHeader entity, CancellationToken ct = default)
+    {
+        _db.TrainingHeaders.Add(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateHeaderAsync(TrainingHeader entity, CancellationToken ct = default)
+    {
+        _db.TrainingHeaders.Update(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteHeaderAsync(int id, CancellationToken ct = default)
+    {
+        var entity = await GetHeaderByIdAsync(id, ct: ct)
+            ?? throw new KeyNotFoundException($"TrainingHeader {id}");
+        _db.TrainingHeaders.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public Task<TrainingDetail?> GetDetailByIdAsync(int id, CancellationToken ct = default) =>
+        _db.TrainingDetails.FirstOrDefaultAsync(d => d.Id == id, ct);
+
+    public async Task AddDetailAsync(TrainingDetail entity, CancellationToken ct = default)
+    {
+        _db.TrainingDetails.Add(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateDetailAsync(TrainingDetail entity, CancellationToken ct = default)
+    {
+        _db.TrainingDetails.Update(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteDetailAsync(int id, CancellationToken ct = default)
+    {
+        var entity = await GetDetailByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"TrainingDetail {id}");
+        _db.TrainingDetails.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+}
+```
+
+2. Create `TCS.Infrastructure/Persistence/Repositories/EmployeeRepository.cs`:
+```csharp
+public class EmployeeRepository : IEmployeeRepository
+{
+    private readonly AppDbContext _db;
+    public EmployeeRepository(AppDbContext db) => _db = db;
+
+    public Task<List<Employee>> GetAllAsync(CancellationToken ct = default) =>
+        _db.Employees.ToListAsync(ct);
+
+    public Task<Employee?> GetByIdAsync(string employeeId, CancellationToken ct = default) =>
+        _db.Employees.FirstOrDefaultAsync(e => e.MV001 == employeeId, ct);
+}
+```
+
+3. Create `TCS.Infrastructure/Persistence/Repositories/PlantRepository.cs`:
+```csharp
+public class PlantRepository : IPlantRepository
+{
+    private readonly AppDbContext _db;
+    public PlantRepository(AppDbContext db) => _db = db;
+
+    public Task<List<Plant>> GetAllAsync(CancellationToken ct = default) =>
+        _db.Plants.ToListAsync(ct);
+}
+```
+
+4. Commit:
+```
+feat(infra): add TrainingRepository, EmployeeRepository, PlantRepository
+```
+
+---
+
+## Phase 7 — Application Services
+
+### Task 18 — LicenseService + tests
+
+**Goal:** Implement `ILicenseService` / `LicenseService` and unit tests.
+
+**Steps:**
+
+1. Create `TCS.Core/Interfaces/ILicenseService.cs`:
+```csharp
+public interface ILicenseService
+{
+    Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search, CancellationToken ct = default);
+    Task<LicenseMasterDto> GetByIdAsync(string licenseType, CancellationToken ct = default);
+    Task<LicenseMasterDto> CreateAsync(CreateLicenseMasterRequest req, CancellationToken ct = default);
+    Task<LicenseMasterDto> UpdateAsync(string licenseType, UpdateLicenseMasterRequest req, CancellationToken ct = default);
+    Task DeleteAsync(string licenseType, CancellationToken ct = default);
+    Task UpsertPlantRequirementsAsync(UpsertPlantRequirementsRequest req, CancellationToken ct = default);
+}
+```
+
+2. Create `TCS.Core/Services/LicenseService.cs`:
+```csharp
+public class LicenseService : ILicenseService
+{
+    private readonly ILicenseRepository _repo;
+    public LicenseService(ILicenseRepository repo) => _repo = repo;
+
+    public async Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        var all = await _repo.GetAllAsync(ct);
+        if (!string.IsNullOrEmpty(search))
+            all = all.Where(l => l.LicenseName.Contains(search) || l.LicenseType.Contains(search)).ToList();
+        var dtos = all.Select(l => l.ToDto()).ToList();
+        return PaginationHelper.Paginate(dtos, page, pageSize);
+    }
+
+    public async Task<LicenseMasterDto> GetByIdAsync(string licenseType, CancellationToken ct = default)
+    {
+        var entity = await _repo.GetByIdAsync(licenseType, ct)
+            ?? throw new KeyNotFoundException(licenseType);
+        return entity.ToDto();
+    }
+
+    public async Task<LicenseMasterDto> CreateAsync(CreateLicenseMasterRequest req, CancellationToken ct = default)
+    {
+        var entity = new LicenseMaster
+        {
+            LicenseType = req.LicenseType,
+            LicenseName = req.LicenseName,
+            Hours = req.Hours,
+            Years = req.Years,
+            ParentLicenseType = req.ParentLicenseType
+        };
+        await _repo.AddAsync(entity, ct);
+        return entity.ToDto();
+    }
+
+    public async Task<LicenseMasterDto> UpdateAsync(string licenseType, UpdateLicenseMasterRequest req, CancellationToken ct = default)
+    {
+        var entity = await _repo.GetByIdAsync(licenseType, ct)
+            ?? throw new KeyNotFoundException(licenseType);
+        entity.LicenseName = req.LicenseName;
+        entity.Hours = req.Hours;
+        entity.Years = req.Years;
+        entity.ParentLicenseType = req.ParentLicenseType;
+        await _repo.UpdateAsync(entity, ct);
+        return entity.ToDto();
+    }
+
+    public async Task DeleteAsync(string licenseType, CancellationToken ct = default)
+    {
+        if (await _repo.HasTrainingHeadersAsync(licenseType, ct))
+            throw new InvalidOperationException("Cannot delete: TrainingHeaders exist.");
+        await _repo.DeleteAsync(licenseType, ct);
+    }
+
+    public async Task UpsertPlantRequirementsAsync(UpsertPlantRequirementsRequest req, CancellationToken ct = default)
+    {
+        var entity = await _repo.GetByIdAsync(req.LicenseType, ct)
+            ?? throw new KeyNotFoundException(req.LicenseType);
+        entity.PlantRequirements.Clear();
+        foreach (var plantId in req.PlantIds)
+            entity.PlantRequirements.Add(new LicensePlantRequirement { LicenseType = req.LicenseType, PlantId = plantId });
+        await _repo.UpdateAsync(entity, ct);
+    }
+}
+```
+
+3. Create `TCS.Tests/LicenseServiceTests.cs` (key scenarios):
+```csharp
+public class LicenseServiceTests
+{
+    private static ILicenseRepository CreateMockRepo(List<LicenseMaster> data)
+    {
+        var mock = new Mock<ILicenseRepository>();
+        mock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(data);
+        mock.Setup(r => r.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string lt, CancellationToken _) => data.Any(l => l.LicenseType == lt));
+        mock.Setup(r => r.HasTrainingHeadersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        return mock.Object;
+    }
+
+    [Fact]
+    public async Task GetAll_SearchFilters_CorrectResults()
+    {
+        var data = new List<LicenseMaster>
+        {
+            new() { LicenseType = "1", LicenseName = "電氣類", Hours = null, Years = null },
+            new() { LicenseType = "1.1", LicenseName = "低壓電氣作業", Hours = 16m, Years = 2 }
+        };
+        var svc = new LicenseService(CreateMockRepo(data));
+        var result = await svc.GetAllAsync(1, 10, "低壓");
+        Assert.Single(result.Items);
+        Assert.Equal("1.1", result.Items[0].LicenseType);
+    }
+
+    [Fact]
+    public async Task Delete_WithTrainingHeaders_ThrowsInvalidOperation()
+    {
+        var mock = new Mock<ILicenseRepository>();
+        mock.Setup(r => r.HasTrainingHeadersAsync("1.1", default)).ReturnsAsync(true);
+        var svc = new LicenseService(mock.Object);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteAsync("1.1"));
+    }
+}
+```
+
+4. Commit:
+```
+feat(core): add LicenseService + tests
+```
+
+---
+
+### Task 19 — TrainingService + tests
+
+**Goal:** Implement `ITrainingService` / `TrainingService` including §8-2 rule enforcement.
+
+**Steps:**
+
+1. Create `TCS.Core/Interfaces/ITrainingService.cs`:
+```csharp
+public interface ITrainingService
+{
+    Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(string? employeeId, string? licenseType, int page, int pageSize, CancellationToken ct = default);
+    Task<TrainingHeaderDto> GetHeaderByIdAsync(int id, CancellationToken ct = default);
+    Task<TrainingHeaderDto> CreateHeaderAsync(CreateTrainingHeaderRequest req, CancellationToken ct = default);
+    Task DeleteHeaderAsync(int id, CancellationToken ct = default);
+    Task<IReadOnlyList<TrainingDetailDto>> GetDetailsAsync(int headerId, CancellationToken ct = default);
+    Task<TrainingDetailDto> AddDetailAsync(CreateTrainingDetailRequest req, CancellationToken ct = default);
+    Task<TrainingDetailDto> UpdateDetailAsync(int id, UpdateTrainingDetailRequest req, CancellationToken ct = default);
+    Task DeleteDetailAsync(int id, CancellationToken ct = default);
+}
+```
+
+2. Create `TCS.Core/Services/TrainingService.cs`:
+```csharp
+public class TrainingService : ITrainingService
+{
+    private readonly ITrainingRepository _repo;
+    private readonly ILicenseRepository _licenseRepo;
+    private readonly IEmployeeRepository _empRepo;
+    private readonly IExpiryCalculator _expiry;
+
+    public TrainingService(ITrainingRepository repo, ILicenseRepository licenseRepo,
+        IEmployeeRepository empRepo, IExpiryCalculator expiry)
+    {
+        _repo = repo;
+        _licenseRepo = licenseRepo;
+        _empRepo = empRepo;
+        _expiry = expiry;
+    }
+
+    public async Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(string? employeeId, string? licenseType, int page, int pageSize, CancellationToken ct = default)
+    {
+        var headers = await _repo.GetHeadersAsync(employeeId, licenseType, ct);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var dtoTasks = headers.Select(async h =>
+        {
+            var details = (await _repo.GetHeaderByIdAsync(h.Id, includeDetails: true, ct: ct))!.Details.ToList();
+            var emp = await _empRepo.GetByIdAsync(h.EmployeeId, ct);
+            return h.ToDto(emp, details, _expiry, today);
+        });
+        var dtos = (await Task.WhenAll(dtoTasks)).ToList();
+        return PaginationHelper.Paginate(dtos, page, pageSize);
+    }
+
+    public async Task<TrainingHeaderDto> GetHeaderByIdAsync(int id, CancellationToken ct = default)
+    {
+        var header = await _repo.GetHeaderByIdAsync(id, includeDetails: true, ct: ct)
+            ?? throw new KeyNotFoundException($"TrainingHeader {id}");
+        var emp = await _empRepo.GetByIdAsync(header.EmployeeId, ct);
+        return header.ToDto(emp, header.Details.ToList(), _expiry, DateOnly.FromDateTime(DateTime.Today));
+    }
+
+    public async Task<TrainingHeaderDto> CreateHeaderAsync(CreateTrainingHeaderRequest req, CancellationToken ct = default)
+    {
+        var existing = await _repo.GetHeaderAsync(req.EmployeeId, req.LicenseType, ct);
+        if (existing != null) throw new InvalidOperationException("TrainingHeader already exists for this employee/license.");
+        var license = await _licenseRepo.GetByIdAsync(req.LicenseType, ct)
+            ?? throw new KeyNotFoundException(req.LicenseType);
+        var header = new TrainingHeader
+        {
+            EmployeeId = req.EmployeeId,
+            LicenseType = req.LicenseType,
+            RequiredHours = license.Hours ?? 0m
+        };
+        await _repo.AddHeaderAsync(header, ct);
+        var emp = await _empRepo.GetByIdAsync(req.EmployeeId, ct);
+        return header.ToDto(emp, new List<TrainingDetail>(), _expiry, DateOnly.FromDateTime(DateTime.Today));
+    }
+
+    public Task DeleteHeaderAsync(int id, CancellationToken ct = default) =>
+        _repo.DeleteHeaderAsync(id, ct);
+
+    public async Task<IReadOnlyList<TrainingDetailDto>> GetDetailsAsync(int headerId, CancellationToken ct = default)
+    {
+        var header = await _repo.GetHeaderByIdAsync(headerId, includeDetails: true, ct: ct)
+            ?? throw new KeyNotFoundException($"TrainingHeader {headerId}");
+        var license = await _licenseRepo.GetByIdAsync(header.LicenseType, ct);
+        var details = header.Details.ToList();
+        var expiry = _expiry.ComputeExpiry(details, header.RequiredHours, license?.Years, DateOnly.FromDateTime(DateTime.Today));
+        var expiryMap = expiry.ToDictionary(e => e.Detail.Id, e => e.ShouldBeExpired);
+        return details.Select(d => d.ToDto(expiryMap.GetValueOrDefault(d.Id))).ToList();
+    }
+
+    public async Task<TrainingDetailDto> AddDetailAsync(CreateTrainingDetailRequest req, CancellationToken ct = default)
+    {
+        var header = await _repo.GetHeaderByIdAsync(req.TrainingHeaderId, includeDetails: true, ct: ct)
+            ?? throw new KeyNotFoundException($"TrainingHeader {req.TrainingHeaderId}");
+
+        // §8-2: first detail for (EmployeeId, LicenseType) must be TrainingType=1
+        if (!header.Details.Any() && req.TrainingType != 1)
+            throw new InvalidOperationException("First training record must be of type 1 (取得證照).");
+
+        var detail = new TrainingDetail
+        {
+            TrainingHeaderId = req.TrainingHeaderId,
+            TrainingDate = req.TrainingDate,
+            TrainingType = req.TrainingType,
+            Hours = req.Hours,
+            Flag = 0m
+        };
+        await _repo.AddDetailAsync(detail, ct);
+        return detail.ToDto(false);
+    }
+
+    public async Task<TrainingDetailDto> UpdateDetailAsync(int id, UpdateTrainingDetailRequest req, CancellationToken ct = default)
+    {
+        var detail = await _repo.GetDetailByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"TrainingDetail {id}");
+        detail.TrainingDate = req.TrainingDate;
+        detail.TrainingType = req.TrainingType;
+        detail.Hours = req.Hours;
+        await _repo.UpdateDetailAsync(detail, ct);
+        return detail.ToDto(false);
+    }
+
+    public Task DeleteDetailAsync(int id, CancellationToken ct = default) =>
+        _repo.DeleteDetailAsync(id, ct);
+}
+```
+
+3. Create `TCS.Tests/TrainingServiceTests.cs`:
+```csharp
+public class TrainingServiceTests
+{
+    [Fact]
+    public async Task AddDetail_FirstRecord_MustBeType1()
+    {
+        var header = new TrainingHeader { Id = 1, EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16m, Details = new List<TrainingDetail>() };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderByIdAsync(1, true, default)).ReturnsAsync(header);
+        var svc = new TrainingService(repoMock.Object, Mock.Of<ILicenseRepository>(), Mock.Of<IEmployeeRepository>(), new ExpiryCalculator());
+        var req = new CreateTrainingDetailRequest(1, DateTime.Today.AddMonths(-1), 2, 8m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AddDetailAsync(req));
+    }
+
+    [Fact]
+    public async Task CreateHeader_RequiredHours_FromLicense()
+    {
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("1.1", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "1.1", LicenseName = "Test", Hours = 24m });
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.GetHeaderAsync("E001", "1.1", default)).ReturnsAsync((TrainingHeader?)null);
+        trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
+        var svc = new TrainingService(trainingRepo.Object, licenseRepo.Object, Mock.Of<IEmployeeRepository>(), new ExpiryCalculator());
+        var result = await svc.CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1"));
+        Assert.Equal(24m, result.RequiredHours);
+    }
+}
+```
+
+4. Commit:
+```
+feat(core): add TrainingService + tests
+```
+
+---
+
+### Task 20 — ExcelExportService
+
+**Goal:** Implement ClosedXML-based Excel export for training records.
+
+**Steps:**
+
+1. Add NuGet to `TCS.Infrastructure`: `dotnet add TCS.Infrastructure package ClosedXML`
+
+2. Create `TCS.Core/Interfaces/IExcelExportService.cs`:
+```csharp
+public interface IExcelExportService
+{
+    byte[] ExportTrainingHeaders(IReadOnlyList<TrainingHeaderDto> rows);
+}
+```
+
+3. Create `TCS.Infrastructure/Services/ExcelExportService.cs`:
+```csharp
+public class ExcelExportService : IExcelExportService
+{
+    public byte[] ExportTrainingHeaders(IReadOnlyList<TrainingHeaderDto> rows)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("受訓紀錄");
+        var headers = new[] { "員工代號", "姓名", "證照類別", "證照名稱", "所需時數", "最後取得日",
+                              "最後複訓日", "下次複審日", "累計時數", "剩餘時數", "狀態" };
+        for (int i = 0; i < headers.Length; i++)
+            ws.Cell(1, i + 1).Value = headers[i];
+
+        int row = 2;
+        foreach (var r in rows)
+        {
+            ws.Cell(row, 1).Value = r.EmployeeId;
+            ws.Cell(row, 2).Value = r.EmployeeName;
+            ws.Cell(row, 3).Value = r.LicenseType;
+            ws.Cell(row, 4).Value = r.LicenseName;
+            ws.Cell(row, 5).Value = (double)r.RequiredHours;
+            ws.Cell(row, 6).Value = r.LatestAcquireDate?.ToString("yyyy-MM-dd") ?? "";
+            ws.Cell(row, 7).Value = r.LatestRetrainDate?.ToString("yyyy-MM-dd") ?? "";
+            ws.Cell(row, 8).Value = r.NextReviewDate?.ToString("yyyy-MM-dd") ?? "";
+            ws.Cell(row, 9).Value = (double)r.AccumulatedHours;
+            ws.Cell(row, 10).Value = (double)r.RemainingHours;
+            ws.Cell(row, 11).Value = r.OverallStatus;
+            row++;
+        }
+
+        ws.ColumnsUsed().AdjustToContents();
+        using var stream = new MemoryStream();
+        wb.SaveAs(stream);
+        return stream.ToArray();
+    }
+}
+```
+
+4. Commit:
+```
+feat(infra): add ExcelExportService with ClosedXML
+```
+
+---
+
+## Phase 8 — Authorization
+
+### Task 21 — RequireAction attribute + JWT setup
+
+**Goal:** Implement the `[RequireAction]` authorization filter and JWT configuration.
+
+**Steps:**
+
+1. Create `TCS.Web/Filters/RequireActionAttribute.cs`:
+```csharp
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class RequireActionAttribute : Attribute
+{
+    public string Action { get; }
+    public RequireActionAttribute(string action) => Action = action;
+}
+```
+
+2. Create `TCS.Web/Filters/RequireActionFilter.cs`:
+```csharp
+public class RequireActionFilter : IAsyncActionFilter
+{
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        var attr = context.ActionDescriptor.EndpointMetadata
+            .OfType<RequireActionAttribute>().FirstOrDefault();
+
+        if (attr != null)
+        {
+            var user = context.HttpContext.User;
+            var actionClaim = user.FindFirstValue("action") ?? "";
+            var allowed = actionClaim.Split(',').Select(a => a.Trim());
+            if (!allowed.Contains(attr.Action))
+            {
+                context.Result = new ObjectResult(new { message = $"您沒有此操作權限：{attr.Action}" })
+                {
+                    StatusCode = 403
+                };
+                return;
+            }
+        }
+
+        await next();
+    }
+}
+```
+
+3. Configure JWT in `Program.cs` (see Task 27):
+```csharp
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+```
+
+4. Commit:
+```
+feat(web): add RequireAction authorization filter + JWT config
+```
+
+---
+
+## Phase 9 — Controllers
+
+### Task 22 — LicenseController
+
+**Goal:** Implement the `LicenseController` with all CRUD + plant requirement endpoints.
+
+**Steps:**
+
+1. Create `TCS.Web/Controllers/LicenseController.cs`:
+```csharp
+[ApiController]
+[Route("api/license")]
+[Authorize]
+public class LicenseController : ControllerBase
+{
+    private readonly ILicenseService _svc;
+    public LicenseController(ILicenseService svc) => _svc = svc;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null, CancellationToken ct = default)
+        => Ok(await _svc.GetAllAsync(page, pageSize, search, ct));
+
+    [HttpGet("{licenseType}")]
+    public async Task<IActionResult> GetById(string licenseType, CancellationToken ct = default)
+    {
+        try { return Ok(await _svc.GetByIdAsync(licenseType, ct)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPost]
+    [RequireAction("新增")]
+    public async Task<IActionResult> Create([FromBody] CreateLicenseMasterRequest req, CancellationToken ct = default)
+    {
+        try { return StatusCode(201, await _svc.CreateAsync(req, ct)); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
+    [HttpPut("{licenseType}")]
+    [RequireAction("修改")]
+    public async Task<IActionResult> Update(string licenseType, [FromBody] UpdateLicenseMasterRequest req, CancellationToken ct = default)
+    {
+        try { return Ok(await _svc.UpdateAsync(licenseType, req, ct)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpDelete("{licenseType}")]
+    [RequireAction("刪除")]
+    public async Task<IActionResult> Delete(string licenseType, CancellationToken ct = default)
+    {
+        try { await _svc.DeleteAsync(licenseType, ct); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
+    [HttpPut("{licenseType}/plants")]
+    [RequireAction("儲存")]
+    public async Task<IActionResult> UpsertPlants(string licenseType, [FromBody] UpsertPlantRequirementsRequest req, CancellationToken ct = default)
+    {
+        try { await _svc.UpsertPlantRequirementsAsync(req, ct); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+}
+```
+
+2. Commit:
+```
+feat(web): add LicenseController
+```
+
+---
+
+### Task 23 — TrainingHeaderController + TrainingDetailController
+
+**Goal:** Implement training header and detail controllers.
+
+**Steps:**
+
+1. Create `TCS.Web/Controllers/TrainingHeaderController.cs`:
+```csharp
+[ApiController]
+[Route("api/training-headers")]
+[Authorize]
+public class TrainingHeaderController : ControllerBase
+{
+    private readonly ITrainingService _svc;
+    public TrainingHeaderController(ITrainingService svc) => _svc = svc;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] string? employeeId, [FromQuery] string? licenseType,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+        => Ok(await _svc.GetHeadersAsync(employeeId, licenseType, page, pageSize, ct));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken ct = default)
+    {
+        try { return Ok(await _svc.GetHeaderByIdAsync(id, ct)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPost]
+    [RequireAction("新增")]
+    public async Task<IActionResult> Create([FromBody] CreateTrainingHeaderRequest req, CancellationToken ct = default)
+    {
+        try { return StatusCode(201, await _svc.CreateHeaderAsync(req, ct)); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpDelete("{id:int}")]
+    [RequireAction("刪除")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
+    {
+        try { await _svc.DeleteHeaderAsync(id, ct); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpGet("{id:int}/export")]
+    public async Task<IActionResult> Export(int id, [FromServices] IExcelExportService excel, CancellationToken ct = default)
+    {
+        var header = await _svc.GetHeaderByIdAsync(id, ct);
+        var bytes = excel.ExportTrainingHeaders(new[] { header });
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"training_{id}.xlsx");
+    }
+}
+```
+
+2. Create `TCS.Web/Controllers/TrainingDetailController.cs`:
+```csharp
+[ApiController]
+[Route("api/training-details")]
+[Authorize]
+public class TrainingDetailController : ControllerBase
+{
+    private readonly ITrainingService _svc;
+    public TrainingDetailController(ITrainingService svc) => _svc = svc;
+
+    [HttpGet]
+    public async Task<IActionResult> GetByHeader([FromQuery] int headerId, CancellationToken ct = default)
+    {
+        try { return Ok(await _svc.GetDetailsAsync(headerId, ct)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPost]
+    [RequireAction("新增")]
+    public async Task<IActionResult> Create([FromBody] CreateTrainingDetailRequest req, CancellationToken ct = default)
+    {
+        try { return StatusCode(201, await _svc.AddDetailAsync(req, ct)); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPut("{id:int}")]
+    [RequireAction("修改")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTrainingDetailRequest req, CancellationToken ct = default)
+    {
+        try { return Ok(await _svc.UpdateDetailAsync(id, req, ct)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpDelete("{id:int}")]
+    [RequireAction("刪除")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
+    {
+        try { await _svc.DeleteDetailAsync(id, ct); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+}
+```
+
+3. Commit:
+```
+feat(web): add TrainingHeaderController and TrainingDetailController
+```
+
+---
+
+### Task 24 — EmployeeController + PlantController + ExportController
+
+**Goal:** Implement remaining controllers.
+
+**Steps:**
+
+1. Create `TCS.Web/Controllers/EmployeeController.cs`:
+```csharp
+[ApiController]
+[Route("api/employees")]
+[Authorize]
+public class EmployeeController : ControllerBase
+{
+    private readonly IEmployeeRepository _repo;
+    public EmployeeController(IEmployeeRepository repo) => _repo = repo;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct = default)
+        => Ok((await _repo.GetAllAsync(ct)).Select(e => e.ToDto()));
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id, CancellationToken ct = default)
+    {
+        var emp = await _repo.GetByIdAsync(id, ct);
+        return emp == null ? NotFound() : Ok(emp.ToDto());
+    }
+}
+```
+
+2. Create `TCS.Web/Controllers/PlantController.cs`:
+```csharp
+[ApiController]
+[Route("api/plants")]
+[Authorize]
+public class PlantController : ControllerBase
+{
+    private readonly IPlantRepository _repo;
+    public PlantController(IPlantRepository repo) => _repo = repo;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct = default)
+        => Ok((await _repo.GetAllAsync(ct)).Select(p => p.ToDto()));
+}
+```
+
+3. Create `TCS.Web/Controllers/ExportController.cs`:
+```csharp
+[ApiController]
+[Route("api/export")]
+[Authorize]
+public class ExportController : ControllerBase
+{
+    private readonly ITrainingService _trainingSvc;
+    private readonly IExcelExportService _excelSvc;
+
+    public ExportController(ITrainingService trainingSvc, IExcelExportService excelSvc)
+    {
+        _trainingSvc = trainingSvc;
+        _excelSvc = excelSvc;
+    }
+
+    [HttpGet("training-headers")]
+    public async Task<IActionResult> ExportHeaders(
+        [FromQuery] string? employeeId, [FromQuery] string? licenseType, CancellationToken ct = default)
+    {
+        var result = await _trainingSvc.GetHeadersAsync(employeeId, licenseType, 1, int.MaxValue, ct);
+        var bytes = _excelSvc.ExportTrainingHeaders(result.Items);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"training_export_{DateTime.Today:yyyyMMdd}.xlsx");
+    }
+}
+```
+
+4. Commit:
+```
+feat(web): add EmployeeController, PlantController, ExportController
+```
+
+---
+
+## Phase 10 — Background Service
+
+### Task 25 — ExpiryScanService + tests
+
+**Goal:** Implement the daily expiry scan background service.
+
+**Steps:**
+
+1. Create `TCS.Core/Interfaces/ITimeProvider.cs`:
+```csharp
+public interface IAppTimeProvider
+{
+    DateTimeOffset UtcNow { get; }
+    TimeZoneInfo LocalTimeZone { get; }
+}
+```
+
+2. Create `TCS.Infrastructure/Services/SystemTimeProvider.cs`:
+```csharp
+public class SystemTimeProvider : IAppTimeProvider
+{
+    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+    public TimeZoneInfo LocalTimeZone =>
+        TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
+}
+```
+
+3. Create `TCS.Infrastructure/Services/ExpiryScanService.cs`:
+```csharp
+public class ExpiryScanService : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IAppTimeProvider _clock;
+    private readonly ILogger<ExpiryScanService> _logger;
+
+    public ExpiryScanService(IServiceScopeFactory scopeFactory, IAppTimeProvider clock,
+        ILogger<ExpiryScanService> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _clock = clock;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var now = TimeZoneInfo.ConvertTime(_clock.UtcNow, _clock.LocalTimeZone);
+            var nextMidnight = now.Date.AddDays(1);
+            var delay = nextMidnight - now.DateTime;
+            _logger.LogInformation("ExpiryScanService: next scan in {Delay}", delay);
+            await Task.Delay(delay, stoppingToken);
+            await RunScanAsync(stoppingToken);
+        }
+    }
+
+    private async Task RunScanAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var expiry = scope.ServiceProvider.GetRequiredService<IExpiryCalculator>();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var headers = await db.TrainingHeaders
+            .Include(h => h.Details)
+            .Include(h => h.LicenseMaster)
+            .ToListAsync(ct);
+
+        foreach (var header in headers)
+        {
+            var results = expiry.ComputeExpiry(
+                header.Details.ToList(), header.RequiredHours,
+                header.LicenseMaster?.Years, today);
+
+            foreach (var (detail, shouldExpire) in results)
+            {
+                var currentFlag = (int)detail.Flag;
+                if (shouldExpire && currentFlag != 1)
+                    detail.Flag = 1m;
+                else if (!shouldExpire && currentFlag != 0)
+                    detail.Flag = 0m;
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        _logger.LogInformation("ExpiryScanService: scan complete at {Time}", DateTime.Now);
+    }
+}
+```
+
+4. Create `TCS.Tests/ExpiryScanServiceTests.cs`:
+```csharp
+public class ExpiryScanServiceTests
+{
+    [Fact]
+    public async Task WaitsUntilNextMidnight_BeforeFirstScan()
+    {
+        // Arrange: fake clock set to 11:00 PM — next scan should be ~1 hour later
+        var fakeNow = new DateTimeOffset(2024, 1, 15, 23, 0, 0, TimeSpan.FromHours(8));
+        var clockMock = new Mock<IAppTimeProvider>();
+        clockMock.Setup(c => c.UtcNow).Returns(fakeNow.ToUniversalTime());
+        clockMock.Setup(c => c.LocalTimeZone).Returns(TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei"));
+
+        // Verify the computed delay is ~1 hour
+        var now = TimeZoneInfo.ConvertTime(fakeNow.ToUniversalTime(), clockMock.Object.LocalTimeZone);
+        var nextMidnight = now.Date.AddDays(1);
+        var delay = nextMidnight - now.DateTime;
+        Assert.True(delay.TotalMinutes > 59 && delay.TotalMinutes < 61);
+    }
+}
+```
+
+5. Commit:
+```
+feat(infra): add ExpiryScanService + IAppTimeProvider + tests
+```
+
+---
+
+## Phase 11 — Web Layer
+
+### Task 26 — Razor views + layout
+
+**Goal:** Create the shared layout and main Razor views.
+
+**Steps:**
+
+1. Create `TCS.Web/Views/Shared/_Layout.cshtml`:
+```html
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TCS 受訓證件作業</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">TCS 受訓證件作業</a>
+            <div class="navbar-nav">
+                <a class="nav-link" asp-controller="License" asp-action="Index">證照管理</a>
+                <a class="nav-link" asp-controller="TrainingHeader" asp-action="Index">受訓紀錄</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        @RenderBody()
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+2. Create `TCS.Web/Views/License/Index.cshtml`:
+```html
+@{
+    ViewData["Title"] = "證照管理";
+}
+<h2>證照管理</h2>
+<div id="license-app">
+    <div class="mb-3 d-flex gap-2">
+        <input type="text" id="search" class="form-control w-25" placeholder="搜尋..." />
+        <button id="btn-search" class="btn btn-outline-primary">搜尋</button>
+        <button id="btn-add" class="btn btn-primary">新增</button>
+    </div>
+    <table class="table table-bordered" id="license-table">
+        <thead>
+            <tr>
+                <th>證照類別</th><th>證照名稱</th><th>所需時數</th><th>年數</th><th>上層類別</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <nav><ul class="pagination" id="pagination"></ul></nav>
+</div>
+@section Scripts {
+    <script src="~/js/license.js"></script>
+}
+```
+
+3. Create `TCS.Web/Views/TrainingHeader/Index.cshtml`:
+```html
+@{
+    ViewData["Title"] = "受訓紀錄";
+}
+<h2>受訓紀錄管理</h2>
+<div id="training-app">
+    <div class="mb-3 d-flex gap-2">
+        <input type="text" id="filter-emp" class="form-control w-25" placeholder="員工代號..." />
+        <input type="text" id="filter-license" class="form-control w-25" placeholder="證照類別..." />
+        <button id="btn-search" class="btn btn-outline-primary">搜尋</button>
+        <button id="btn-export" class="btn btn-success">匯出 Excel</button>
+    </div>
+    <table class="table table-bordered" id="training-table">
+        <thead>
+            <tr>
+                <th>員工代號</th><th>姓名</th><th>證照類別</th><th>證照名稱</th>
+                <th>所需時數</th><th>累計時數</th><th>剩餘時數</th><th>狀態</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <nav><ul class="pagination" id="pagination"></ul></nav>
+</div>
+@section Scripts {
+    <script src="~/js/training.js"></script>
+}
+```
+
+4. Commit:
+```
+feat(web): add Razor views and layout
+```
+
+---
+
+### Task 27 — Program.cs + appsettings.json
+
+**Goal:** Wire up all services, middleware, and configuration in the web host.
+
+**Steps:**
+
+1. Create/update `TCS.Web/Program.cs`:
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// DB: InMemory fallback for SQL Server 2008 / dev
+var useInMemory = builder.Configuration["USE_INMEMORY_DB"] == "true"
+    || string.IsNullOrEmpty(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+if (useInMemory)
+    builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("TcsDb"));
+else
+    builder.Services.AddDbContext<AppDbContext>(o =>
+        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Repos
+builder.Services.AddScoped<ILicenseRepository, LicenseRepository>();
+builder.Services.AddScoped<ITrainingRepository, TrainingRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IPlantRepository, PlantRepository>();
+
+// Services
+builder.Services.AddScoped<ILicenseService, LicenseService>();
+builder.Services.AddScoped<ITrainingService, TrainingService>();
+builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
+builder.Services.AddScoped<IExpiryCalculator, ExpiryCalculator>();
+builder.Services.AddSingleton<IAppTimeProvider, SystemTimeProvider>();
+builder.Services.AddHostedService<ExpiryScanService>();
+
+// Validators
+builder.Services.AddValidatorsFromAssembly(typeof(CreateLicenseMasterValidator).Assembly);
+
+// Controllers + JSON PascalCase
+builder.Services.AddControllersWithViews(o => o.Filters.Add<RequireActionFilter>())
+    .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+// JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+    app.UseDeveloperExceptionPage();
+
+app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.MapControllerRoute("default", "{controller=License}/{action=Index}/{id?}");
+
+// Seed on startup in dev/InMemory
+if (useInMemory)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbSeeder.SeedAsync(db);
+}
+
+app.Run();
+```
+
+2. Create `TCS.Web/appsettings.json`:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": ""
+  },
+  "Jwt": {
+    "Key": "CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_MIN_32_CHARS"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+3. Commit:
+```
+feat(web): configure Program.cs and appsettings.json
+```
+
+---
+
+### Task 28 — JS files (license.js, training.js)
+
+**Goal:** Add the client-side JavaScript for CRUD interactions.
+
+**Steps:**
+
+1. Create `TCS.Web/wwwroot/js/license.js`:
+```javascript
+const API = '/api/license';
+let currentPage = 1;
+const pageSize = 20;
+
+async function loadLicenses() {
+    const search = $('#search').val();
+    const res = await fetch(`${API}?page=${currentPage}&pageSize=${pageSize}&search=${encodeURIComponent(search || '')}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    renderTable(data.Items);
+    renderPagination(data.TotalPages, data.Page);
+}
+
+function renderTable(items) {
+    const tbody = $('#license-table tbody').empty();
+    items.forEach(item => {
+        tbody.append(`<tr>
+            <td>${item.LicenseType}</td>
+            <td>${item.LicenseName}</td>
+            <td>${item.Hours ?? ''}</td>
+            <td>${item.Years ?? ''}</td>
+            <td>${item.ParentLicenseType ?? ''}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editLicense('${item.LicenseType}')">修改</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteLicense('${item.LicenseType}')">刪除</button>
+            </td>
+        </tr>`);
+    });
+}
+
+function renderPagination(totalPages, currentPage) {
+    const ul = $('#pagination').empty();
+    for (let i = 1; i <= totalPages; i++) {
+        ul.append(`<li class="page-item ${i === currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="gotoPage(${i})">${i}</a>
+        </li>`);
+    }
+}
+
+function gotoPage(page) { currentPage = page; loadLicenses(); }
+
+async function deleteLicense(licenseType) {
+    if (!confirm(`確認刪除 ${licenseType}？`)) return;
+    const res = await fetch(`${API}/${encodeURIComponent(licenseType)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (res.ok) loadLicenses();
+    else { const err = await res.json(); alert(err.message); }
+}
+
+function getToken() { return localStorage.getItem('jwt_token') || ''; }
+
+$(function () {
+    $('#btn-search').on('click', () => { currentPage = 1; loadLicenses(); });
+    loadLicenses();
+});
+```
+
+2. Create `TCS.Web/wwwroot/js/training.js`:
+```javascript
+const API = '/api/training-headers';
+let currentPage = 1;
+const pageSize = 20;
+
+async function loadTrainings() {
+    const empId = $('#filter-emp').val();
+    const lt = $('#filter-license').val();
+    const params = new URLSearchParams({ page: currentPage, pageSize });
+    if (empId) params.set('employeeId', empId);
+    if (lt) params.set('licenseType', lt);
+    const res = await fetch(`${API}?${params}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    renderTable(data.Items);
+    renderPagination(data.TotalPages, data.Page);
+}
+
+function renderTable(items) {
+    const tbody = $('#training-table tbody').empty();
+    items.forEach(r => {
+        tbody.append(`<tr>
+            <td>${r.EmployeeId}</td>
+            <td>${r.EmployeeName}</td>
+            <td>${r.LicenseType}</td>
+            <td>${r.LicenseName}</td>
+            <td>${r.RequiredHours}</td>
+            <td>${r.AccumulatedHours}</td>
+            <td>${r.RemainingHours}</td>
+            <td><span class="badge ${statusClass(r.OverallStatus)}">${r.OverallStatus}</span></td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewDetails(${r.Id})">詳細</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteHeader(${r.Id})">刪除</button>
+            </td>
+        </tr>`);
+    });
+}
+
+function statusClass(s) {
+    return { '通過': 'bg-success', '進行中': 'bg-warning text-dark', '已過期': 'bg-danger', '未取得': 'bg-secondary' }[s] || 'bg-secondary';
+}
+
+function renderPagination(totalPages, page) {
+    const ul = $('#pagination').empty();
+    for (let i = 1; i <= totalPages; i++) {
+        ul.append(`<li class="page-item ${i === page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="gotoPage(${i})">${i}</a>
+        </li>`);
+    }
+}
+
+function gotoPage(p) { currentPage = p; loadTrainings(); }
+
+async function deleteHeader(id) {
+    if (!confirm('確認刪除此受訓紀錄？')) return;
+    const res = await fetch(`${API}/${id}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (res.ok) loadTrainings();
+    else { const err = await res.json(); alert(err.message); }
+}
+
+function viewDetails(id) { window.location.href = `/TrainingHeader/Details/${id}`; }
+
+function getToken() { return localStorage.getItem('jwt_token') || ''; }
+
+async function exportExcel() {
+    const empId = $('#filter-emp').val();
+    const lt = $('#filter-license').val();
+    const params = new URLSearchParams();
+    if (empId) params.set('employeeId', empId);
+    if (lt) params.set('licenseType', lt);
+    window.location.href = `/api/export/training-headers?${params}`;
+}
+
+$(function () {
+    $('#btn-search').on('click', () => { currentPage = 1; loadTrainings(); });
+    $('#btn-export').on('click', exportExcel);
+    loadTrainings();
+});
+```
+
+3. Commit:
+```
+feat(web): add JS files for license and training CRUD
+```
+
+---
+
+## Phase 12 — Seed Data & AppHost
+
+### Task 29 — DbSeeder + AppHost
+
+**Goal:** Implement seed data for InMemory dev mode and configure .NET Aspire AppHost.
+
+**Steps:**
+
+1. Create `TCS.Infrastructure/Persistence/DbSeeder.cs`:
+```csharp
+public static class DbSeeder
+{
+    public static async Task SeedAsync(AppDbContext db)
+    {
+        if (db.LicenseMasters.Any()) return;
+
+        // 2 parent categories (大類)
+        db.LicenseMasters.AddRange(
+            new LicenseMaster { LicenseType = "1", LicenseName = "電氣類", Hours = null, Years = null },
+            new LicenseMaster { LicenseType = "2", LicenseName = "機械類", Hours = null, Years = null }
+        );
+
+        // 3 sub-types (小類)
+        db.LicenseMasters.AddRange(
+            new LicenseMaster { LicenseType = "1.1", LicenseName = "低壓電氣作業", Hours = 16m, Years = 2, ParentLicenseType = "1" },
+            new LicenseMaster { LicenseType = "1.2", LicenseName = "高壓電氣作業", Hours = 24m, Years = 3, ParentLicenseType = "1" },
+            new LicenseMaster { LicenseType = "2.1", LicenseName = "堆高機操作", Hours = 8m, Years = 1, ParentLicenseType = "2" }
+        );
+
+        await db.SaveChangesAsync();
+
+        // 5 training headers (simulating employees E001–E003)
+        var headers = new[]
+        {
+            new TrainingHeader { EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16m },
+            new TrainingHeader { EmployeeId = "E001", LicenseType = "2.1", RequiredHours = 8m },
+            new TrainingHeader { EmployeeId = "E002", LicenseType = "1.1", RequiredHours = 16m },
+            new TrainingHeader { EmployeeId = "E002", LicenseType = "1.2", RequiredHours = 24m },
+            new TrainingHeader { EmployeeId = "E003", LicenseType = "2.1", RequiredHours = 8m }
+        };
+        db.TrainingHeaders.AddRange(headers);
+        await db.SaveChangesAsync();
+
+        // Training details (at least one Type=1 per header)
+        db.TrainingDetails.AddRange(
+            new TrainingDetail { TrainingHeaderId = headers[0].Id, TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m, Flag = 0m },
+            new TrainingDetail { TrainingHeaderId = headers[0].Id, TrainingDate = DateTime.Today.AddMonths(-6), TrainingType = 2, Hours = 16m, Flag = 0m },
+            new TrainingDetail { TrainingHeaderId = headers[1].Id, TrainingDate = DateTime.Today.AddMonths(-3), TrainingType = 1, Hours = 0m, Flag = 0m },
+            new TrainingDetail { TrainingHeaderId = headers[2].Id, TrainingDate = DateTime.Today.AddYears(-2), TrainingType = 1, Hours = 0m, Flag = 0m },
+            new TrainingDetail { TrainingHeaderId = headers[3].Id, TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m, Flag = 0m }
+        );
+        await db.SaveChangesAsync();
+    }
+}
+```
+
+2. Create or update `TCS.AppHost/Program.cs`:
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var web = builder.AddProject<Projects.TCS_Web>("tcs-web")
+    .WithReplicas(1)
+    .WithEnvironment("USE_INMEMORY_DB", "true");
+
+builder.Build().Run();
+```
+
+3. Commit:
+```
+feat(infra): add DbSeeder and AppHost configuration
+```
+
+---
+
+## Phase 13 — Integration & Verification
+
+### Task 30 — Build, test, and smoke check
+
+**Goal:** Verify the full solution builds, all tests pass, and the app starts correctly.
+
+**Steps:**
+
+1. Restore and build entire solution:
+```
+dotnet restore
+dotnet build --no-restore -c Release
+```
+
+2. Run all unit tests:
+```
+dotnet test --no-build -c Release --logger "console;verbosity=normal"
+```
+
+   Expected: All tests in `TCS.Tests` pass (ExpiryCalculatorTests, LicenseServiceTests, TrainingServiceTests, ExpiryScanServiceTests).
+
+3. Start the app with InMemory DB and verify it starts:
+```
+dotnet run --project TCS.Web -- --urls=http://localhost:5100
+```
+   or via Aspire:
+```
+dotnet run --project TCS.AppHost
+```
+
+4. Smoke check API endpoints:
+```
+# Get all licenses (should return 5 seeded items)
+curl http://localhost:5100/api/license
+
+# Get all training headers
+curl http://localhost:5100/api/training-headers
+```
+
+5. Verify Excel export endpoint returns a valid `.xlsx` file:
+```
+curl -o export.xlsx http://localhost:5100/api/export/training-headers
+```
+
+6. Confirm `ExpiryScanService` logs appear at startup:
+```
+ExpiryScanService: next scan in ...
+```
+
+7. Commit:
+```
+chore: complete full build and smoke check — TCS implementation verified
+```
+
+---
+
+*End of implementation plan. Total: 30 tasks across 13 phases.*
+
+---
+
 ## Phase 2：Entities + EF Configurations
 
 ### Task 5: LicenseMaster + LicensePlantRequirement Entities & Configurations → §4-1, §4-2

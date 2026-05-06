@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "首頁";
+}
+
+<div class="text-center mt-4">
+    <h1 class="display-5">
+        <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
+        鼎新 ERP 作業管理系統
+    </h1>
+    <p class="lead text-muted mt-3">將鼎新 ERP 作業轉換為 .NET 8 Web App</p>
+</div>
+
+<div class="row mt-5 justify-content-center">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-table display-4 text-primary"></i>
+                <h5 class="card-title mt-3">範例作業</h5>
+                <p class="card-text text-muted">範例 CRUD 作業，含單頭單身連動、搜尋、分頁</p>
+                <a asp-controller="SamplePage" asp-action="Index" class="btn btn-primary">
+                    <i class="bi bi-arrow-right"></i> 進入
+                </a>
+            </div>
+        </div>
+    </div>
+    @* ★ 新增作業卡片時，複製上方區塊 *@
+</div>
+
+<div class="row mt-5 justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-info-circle"></i> 開發指引</h6>
+                <ul class="mb-0 small">
+                    <li>API 文件: <a href="@Url.Content("~/swagger")" target="_blank">Swagger UI</a></li>
+                    <li>SDD 流程: <code>/speckit.specify</code> → <code>/speckit.plan</code> → <code>/speckit.tasks</code> → <code>/speckit.implement</code></li>
+                    <li>架構: Clean Architecture (Web → Core ← Infrastructure)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

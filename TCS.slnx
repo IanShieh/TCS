@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TCS.Core/TCS.Core.csproj" />
+    <Project Path="src/TCS.Infrastructure/TCS.Infrastructure.csproj" />
+    <Project Path="src/TCS.Web/TCS.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TCS.Tests/TCS.Tests.csproj" />
+  </Folder>
+</Solution>

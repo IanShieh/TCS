@@ -1,0 +1,36 @@
+# db-query.ps1 — 查詢測試資料庫的表格結構（供 AI 分析用）
+#
+# 使用方式：
+#   1. 複製此檔案為 db-query.ps1（已加入 .gitignore，不會上傳）
+#      Copy-Item db-query.ps1.example db-query.ps1
+#   2. 填入實際的連線資訊
+#   3. 執行查詢：
+#      .\db-query.ps1 -Query "SELECT * FROM INFORMATION_SCHEMA.TABLES"
+#      .\db-query.ps1 -Query "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'PURTA'"
+#
+# 常用查詢範例：
+#   列出所有表格：
+#     .\db-query.ps1 -Query "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME"
+#
+#   查看表格欄位結構：
+#     .\db-query.ps1 -Query "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'PURTA' ORDER BY ORDINAL_POSITION"
+#
+#   查看主鍵：
+#     .\db-query.ps1 -Query "SELECT KU.TABLE_NAME, KU.COLUMN_NAME, KU.ORDINAL_POSITION FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS TC JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KU ON TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME WHERE TC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND KU.TABLE_NAME = 'PURTA'"
+#
+#   查看前 10 筆資料：
+#     .\db-query.ps1 -Query "SELECT TOP 10 * FROM PURTA"
+
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Query
+)
+
+# ─── 連線設定（請填入實際值）───────────────────────────
+$Server   = "YOUR_SERVER_IP"        # 例如 192.168.1.100
+$User     = "YOUR_USERNAME"         # 例如 sa
+$Password = "YOUR_PASSWORD"         # 例如 MyP@ssw0rd
+$Database = "YOUR_DATABASE"         # 例如 DB_25_0515
+# ─────────────────────────────────────────────────────
+
+sqlcmd -S $Server -U $User -P $Password -d $Database -N disable -Q $Query

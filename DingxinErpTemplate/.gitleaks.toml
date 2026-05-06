@@ -1,0 +1,12 @@
+# gitleaks 設定 — 排除已知安全的路徑
+# https://github.com/gitleaks/gitleaks
+
+[allowlist]
+  description = "DingxinErpTemplate 允許清單"
+
+  # 範例檔案（故意展示格式，不含真實密碼）
+  paths = [
+    '''appsettings\.Development\.json\.example''',
+    '''ops-docs/db-query\.ps1\.example''',
+    '''_example.*''',
+  ]

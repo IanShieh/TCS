@@ -1,0 +1,44 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.vs/
+.vs/
+
+## IDE
+.idea/
+*.sln.iml
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Publish
+publish/
+
+## User-secrets
+secrets.json
+
+## Sensitive config
+appsettings.Development.json
+ops-docs/db-query.ps1
+
+## Logs
+logs/
+*.log
+
+## Screenshots (Playwright 測試產物，排除 ops-docs 中的截圖)
+*.png
+*.jpeg
+# 但允許 ops-docs 中的截圖（含 demo/ 下的子專案）
+!ops-docs/**/*.png
+!ops-docs/**/*.jpg
+!ops-docs/**/*.jpeg
+!demo/**/ops-docs/**/*.png
+!demo/**/ops-docs/**/*.jpg
+!demo/**/ops-docs/**/*.jpeg
+
+## Demo 示範專案（保留開發中的作業專案，不排除）
+# demo/ 資料夾整體提交至 GitHub，供團隊參考
+# bin/ obj/ 已被上方全域規則排除

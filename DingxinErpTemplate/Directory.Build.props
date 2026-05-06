@@ -1,0 +1,6 @@
+<Project>
+  <!-- dotnet build 時自動啟用 .githooks/ 目錄的 git hooks -->
+  <Target Name="SetGitHooksPath" BeforeTargets="Build" Condition="Exists('$(MSBuildThisFileDirectory).git')">
+    <Exec Command="git config core.hooksPath .githooks" WorkingDirectory="$(MSBuildThisFileDirectory)" IgnoreExitCode="true" StandardOutputImportance="low" />
+  </Target>
+</Project>

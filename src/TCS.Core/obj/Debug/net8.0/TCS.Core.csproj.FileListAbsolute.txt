@@ -1,0 +1,13 @@
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\bin\Debug\net8.0\TCS.Core.deps.json
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\bin\Debug\net8.0\TCS.Core.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\bin\Debug\net8.0\TCS.Core.pdb
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.csproj.AssemblyReference.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.AssemblyInfoInputs.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.AssemblyInfo.cs
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.csproj.CoreCompileInputs.cache
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.sourcelink.json
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\refint\TCS.Core.dll
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\TCS.Core.pdb
+C:\Users\ian2213\source\repos\TCS\src\TCS.Core\obj\Debug\net8.0\ref\TCS.Core.dll
