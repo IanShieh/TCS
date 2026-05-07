@@ -1,21 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <ItemGroup>
-    <ProjectReference Include="..\TCS.Core\TCS.Core.csproj" />
-    <ProjectReference Include="..\TCS.Infrastructure\TCS.Infrastructure.csproj" />
-    <ProjectReference Include="..\TCS.ServiceDefaults\TCS.ServiceDefaults.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ERP 共用認證函式庫 + Aspire ServiceDefaults -->
+    <ProjectReference Include="..\..\ERP.Auth.Common\ERP.Auth.Common.csproj" />
+    <ProjectReference Include="..\..\ERP.Auth.Common\ERP.ServiceDefaults\ERP.ServiceDefaults.csproj" />
+    <!-- 業務層 -->
+    <ProjectReference Include="..\TCS.Core\TCS.Core.csproj" />
+    <ProjectReference Include="..\TCS.Infrastructure\TCS.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
 
 </Project>

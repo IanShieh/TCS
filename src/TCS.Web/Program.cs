@@ -1,7 +1,6 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ERP.Auth.Common.Extensions;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using TCS.Core.Interfaces;
 using TCS.Core.Services;
 using TCS.Core.Validators.License;
@@ -10,7 +9,6 @@ using TCS.Infrastructure.Persistence;
 using TCS.Infrastructure.Repositories;
 using TCS.Infrastructure.Services;
 using TCS.Web.Filters;
-using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,31 +41,20 @@ builder.Services.AddHostedService<ExpiryScanService>();
 // Validators
 builder.Services.AddValidatorsFromAssembly(typeof(CreateLicenseMasterValidator).Assembly);
 
-// MVC + filter
+// MVC + global action filter
 builder.Services.AddControllersWithViews(o => o.Filters.Add<RequireActionFilter>())
     .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-// JWT
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-    });
-
-builder.Services.AddAuthorization();
+// ERP 共用 JWT + Cookie 認證（替換原本手動 JWT 設定）
+builder.Services.AddErpAuth(builder.Configuration);
 
 // Swagger (dev only)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UsePathBase("/tcs");        // 必須在 UseStaticFiles 之前
 
 app.MapDefaultEndpoints();
 
@@ -81,6 +68,10 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ERP 共用端點：POST /api/auth/token-login、GET /api/auth/verify、GET /session-expired
+app.MapErpAuthEndpoints();
+
 app.MapControllers();
 app.MapControllerRoute("default", "{controller=License}/{action=Index}/{id?}");
 
