@@ -1,12 +1,11 @@
-const API = '/api/licenses';
+const BASE = window.ERP_BASE || '';
+const API = BASE + '/api/licenses';
 let currentPage = 1;
 const pageSize = 20;
 
 async function loadLicenses() {
     const search = $('#search').val();
-    const res = await fetch(`${API}?page=${currentPage}&pageSize=${pageSize}&search=${encodeURIComponent(search || '')}`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
+    const res = await fetch(`${API}?page=${currentPage}&pageSize=${pageSize}&search=${encodeURIComponent(search || '')}`);
     if (!res.ok) { showError(await res.text()); return; }
     const data = await res.json();
     renderTable(data.Items);
@@ -43,24 +42,19 @@ function gotoPage(page) { currentPage = page; loadLicenses(); }
 
 async function deleteLicense(licenseType) {
     if (!confirm(`確認刪除 ${licenseType}？`)) return;
-    const res = await fetch(`${API}/${encodeURIComponent(licenseType)}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
+    const res = await fetch(`${API}/${encodeURIComponent(licenseType)}`, { method: 'DELETE' });
     if (res.ok) loadLicenses();
     else { const err = await res.json(); alert(err.message); }
 }
 
 function editLicense(licenseType) {
-    window.location.href = `/License/Edit/${encodeURIComponent(licenseType)}`;
+    window.location.href = `${BASE}/License/Edit/${encodeURIComponent(licenseType)}`;
 }
-
-function getToken() { return localStorage.getItem('jwt_token') || ''; }
 
 function showError(msg) { console.error(msg); }
 
 $(function () {
     $('#btn-search').on('click', () => { currentPage = 1; loadLicenses(); });
-    $('#btn-add').on('click', () => { window.location.href = '/License/Create'; });
+    $('#btn-add').on('click', () => { window.location.href = `${BASE}/License/Create`; });
     loadLicenses();
 });

@@ -7,4 +7,6 @@ namespace TCS.Web.Controllers;
 public class LicenseController : Controller
 {
     public IActionResult Index() => View();
+    public IActionResult Create() => View();
+    public IActionResult Edit(string licenseType) => View((object)licenseType);
 }

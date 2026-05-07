@@ -1,0 +1,78 @@
+@model string
+@{
+    ViewData["Title"] = "修改證照";
+}
+<h2>修改證照</h2>
+<div class="row">
+    <div class="col-md-6">
+        <form id="edit-form">
+            <div class="mb-3">
+                <label class="form-label">證照類別</label>
+                <input type="text" id="LicenseType" class="form-control" readonly />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">說明 <span class="text-danger">*</span></label>
+                <input type="text" id="Description" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">對應大類</label>
+                <input type="text" id="Category" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">所需時數</label>
+                <input type="number" id="Hours" class="form-control" min="0" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">年數</label>
+                <input type="number" id="Years" class="form-control" min="0" />
+            </div>
+            <div id="error-msg" class="alert alert-danger d-none"></div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">儲存</button>
+                <a href="/License" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+<script>
+const licenseType = '@Html.Raw(Html.Encode(Model))';
+
+const base = window.ERP_BASE || '';
+
+async function loadData() {
+    const res = await fetch(`${base}/api/licenses/${encodeURIComponent(licenseType)}`);
+    if (!res.ok) { alert('載入失敗'); return; }
+    const d = await res.json();
+    $('#LicenseType').val(d.LicenseType);
+    $('#Description').val(d.Description);
+    $('#Category').val(d.Category ?? '');
+    $('#Hours').val(d.Hours ?? '');
+    $('#Years').val(d.Years ?? '');
+}
+
+$('#edit-form').on('submit', async function (e) {
+    e.preventDefault();
+    const body = {
+        LicenseType: licenseType,
+        Description: $('#Description').val().trim(),
+        Category: $('#Category').val().trim() || null,
+        Hours: $('#Hours').val() !== '' ? parseInt($('#Hours').val()) : null,
+        Years: $('#Years').val() !== '' ? parseInt($('#Years').val()) : null
+    };
+    const res = await fetch(`${base}/api/licenses/${encodeURIComponent(licenseType)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (res.ok) {
+        window.location.href = base + '/License';
+    } else {
+        const err = await res.json();
+        $('#error-msg').text(err.message || '儲存失敗').removeClass('d-none');
+    }
+});
+
+loadData();
+</script>
+}

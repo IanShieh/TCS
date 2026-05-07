@@ -1,4 +1,5 @@
-const API = '/api/training-headers';
+const BASE = window.ERP_BASE || '';
+const API = BASE + '/api/training-headers';
 let currentPage = 1;
 const pageSize = 20;
 
@@ -8,9 +9,7 @@ async function loadTrainings() {
     const params = new URLSearchParams({ page: currentPage, pageSize });
     if (empId) params.set('employeeId', empId);
     if (lt) params.set('licenseType', lt);
-    const res = await fetch(`${API}?${params}`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
+    const res = await fetch(`${API}?${params}`);
     if (!res.ok) { console.error(await res.text()); return; }
     const data = await res.json();
     renderTable(data.Items);
@@ -60,19 +59,14 @@ function gotoPage(p) { currentPage = p; loadTrainings(); }
 
 async function deleteHeader(employeeId, licenseType) {
     if (!confirm(`確認刪除 ${employeeId}/${licenseType} 的受訓紀錄？`)) return;
-    const res = await fetch(`${API}/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
+    const res = await fetch(`${API}/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`, { method: 'DELETE' });
     if (res.ok) loadTrainings();
     else { const err = await res.json(); alert(err.message); }
 }
 
 function viewDetails(employeeId, licenseType) {
-    window.location.href = `/TrainingHeader/Details/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`;
+    window.location.href = `${BASE}/TrainingHeader/Details/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`;
 }
-
-function getToken() { return localStorage.getItem('jwt_token') || ''; }
 
 async function exportExcel() {
     const empId = $('#filter-emp').val();
@@ -80,7 +74,7 @@ async function exportExcel() {
     const params = new URLSearchParams();
     if (empId) params.set('employeeId', empId);
     if (lt) params.set('licenseType', lt);
-    window.location.href = `/api/export/training-headers?${params}`;
+    window.location.href = `${BASE}/api/export/training-headers?${params}`;
 }
 
 $(function () {
