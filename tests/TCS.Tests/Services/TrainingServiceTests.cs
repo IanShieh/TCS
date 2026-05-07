@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using TCS.Core.DTOs.Requests;
 using TCS.Core.Entities;
@@ -9,26 +10,16 @@ namespace TCS.Tests.Services;
 
 public class TrainingServiceTests
 {
-    [Fact]
-    public async Task AddDetail_FirstRecord_MustBeType1()
-    {
-        var header = new TrainingHeader
-        {
-            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
-            Details = new List<TrainingDetail>()
-        };
-        var repoMock = new Mock<ITrainingRepository>();
-        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
-
-        var svc = new TrainingService(
-            repoMock.Object,
-            Mock.Of<ILicenseRepository>(),
-            Mock.Of<IEmployeeRepository>(),
+    private static TrainingService BuildSvc(
+        ITrainingRepository? trainingRepo = null,
+        ILicenseRepository? licenseRepo = null,
+        IEmployeeRepository? empRepo = null) =>
+        new(trainingRepo ?? Mock.Of<ITrainingRepository>(),
+            licenseRepo ?? Mock.Of<ILicenseRepository>(),
+            empRepo ?? Mock.Of<IEmployeeRepository>(),
             new ExpiryCalculator());
 
-        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 2, 8m);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AddDetailAsync(req));
-    }
+    // ── CreateHeader ───────────────────────────────────────────────────────
 
     [Fact]
     public async Task CreateHeader_RequiredHours_FromLicense()
@@ -41,13 +32,8 @@ public class TrainingServiceTests
         trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "1.1", default)).ReturnsAsync(false);
         trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
 
-        var svc = new TrainingService(
-            trainingRepo.Object,
-            licenseRepo.Object,
-            Mock.Of<IEmployeeRepository>(),
-            new ExpiryCalculator());
-
-        var result = await svc.CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1", null));
+        var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
+            new CreateTrainingHeaderRequest("E001", "1.1", null));
         Assert.Equal(24, result.RequiredHours);
     }
 
@@ -56,14 +42,118 @@ public class TrainingServiceTests
     {
         var trainingRepo = new Mock<ITrainingRepository>();
         trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "1.1", default)).ReturnsAsync(true);
-
-        var svc = new TrainingService(
-            trainingRepo.Object,
-            Mock.Of<ILicenseRepository>(),
-            Mock.Of<IEmployeeRepository>(),
-            new ExpiryCalculator());
-
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            svc.CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1", null)));
+            BuildSvc(trainingRepo.Object).CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1", null)));
+    }
+
+    [Fact]
+    public async Task CreateHeader_LicenseNotFound_ThrowsKeyNotFound()
+    {
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "9.9", default)).ReturnsAsync(false);
+
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("9.9", default)).ReturnsAsync((LicenseMaster?)null);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
+                new CreateTrainingHeaderRequest("E001", "9.9", null)));
+    }
+
+    // ── GetHeader ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetHeader_NotFound_ThrowsKeyNotFound()
+    {
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.GetHeaderAsync("E001", "9.9", true, default)).ReturnsAsync((TrainingHeader?)null);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            BuildSvc(trainingRepo.Object).GetHeaderAsync("E001", "9.9"));
+    }
+
+    // ── UpdateHeader ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateHeader_UpdatesRemark()
+    {
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            Remark = "舊備註",
+            Details = new List<TrainingDetail>()
+        };
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+        trainingRepo.Setup(r => r.UpdateHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
+
+        var dto = await BuildSvc(trainingRepo.Object).UpdateHeaderAsync(
+            new UpdateTrainingHeaderRequest("E001", "1.1", "新備註"));
+        dto.Remark.Should().Be("新備註");
+    }
+
+    // ── AddDetail ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AddDetail_FirstRecord_MustBeType1()
+    {
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            Details = new List<TrainingDetail>()
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 2, 8m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
+    }
+
+    [Fact]
+    public async Task AddDetail_DuplicateDate_ThrowsInvalidOperation()
+    {
+        var existingDate = DateTime.Today.AddMonths(-2);
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            Details = new List<TrainingDetail>
+            {
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = existingDate, TrainingType = 1, Hours = 4m }
+            }
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(existingDate), 2, 4m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
+    }
+
+    [Fact]
+    public async Task AddDetail_ValidFirstRecord_ReturnsDto()
+    {
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            Details = new List<TrainingDetail>()
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+        repoMock.Setup(r => r.AddDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        var today = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
+        var req = new CreateTrainingDetailRequest("E001", "1.1", today, 1, 8m);
+        var dto = await BuildSvc(repoMock.Object).AddDetailAsync(req);
+        dto.TrainingType.Should().Be(1);
+        dto.Hours.Should().Be(8m);
+        dto.TrainingDate.Should().Be(today);
+    }
+
+    [Fact]
+    public async Task AddDetail_HeaderNotFound_ThrowsKeyNotFound()
+    {
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "9.9", true, default)).ReturnsAsync((TrainingHeader?)null);
+
+        var req = new CreateTrainingDetailRequest("E001", "9.9", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 1, 8m);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
     }
 }
