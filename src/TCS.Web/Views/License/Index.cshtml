@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "證照管理";
+}
+<h2>證照管理</h2>
+<div id="license-app">
+    <div class="mb-3 d-flex gap-2">
+        <input type="text" id="search" class="form-control w-25" placeholder="搜尋..." />
+        <button id="btn-search" class="btn btn-outline-primary">搜尋</button>
+        <button id="btn-add" class="btn btn-primary">新增</button>
+    </div>
+    <table class="table table-bordered" id="license-table">
+        <thead>
+            <tr>
+                <th>證照類別</th>
+                <th>說明</th>
+                <th>對應大類</th>
+                <th>所需時數</th>
+                <th>年數</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <nav><ul class="pagination" id="pagination"></ul></nav>
+</div>
+@section Scripts {
+    <script src="~/js/license.js"></script>
+}
