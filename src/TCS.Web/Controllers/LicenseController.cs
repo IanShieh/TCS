@@ -9,10 +9,10 @@ namespace TCS.Web.Controllers;
 [ApiController]
 [Route("api/licenses")]
 [Authorize]
-public class LicenseController : ControllerBase
+public class LicenseApiController : ControllerBase
 {
     private readonly ILicenseService _svc;
-    public LicenseController(ILicenseService svc) => _svc = svc;
+    public LicenseApiController(ILicenseService svc) => _svc = svc;
 
     [HttpGet]
     public async Task<IActionResult> GetAll(

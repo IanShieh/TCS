@@ -9,10 +9,10 @@ namespace TCS.Web.Controllers;
 [ApiController]
 [Route("api/training-headers")]
 [Authorize]
-public class TrainingHeaderController : ControllerBase
+public class TrainingHeaderApiController : ControllerBase
 {
     private readonly ITrainingService _svc;
-    public TrainingHeaderController(ITrainingService svc) => _svc = svc;
+    public TrainingHeaderApiController(ITrainingService svc) => _svc = svc;
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
