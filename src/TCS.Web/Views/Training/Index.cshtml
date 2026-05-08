@@ -1,0 +1,214 @@
+@{
+    ViewData["Title"] = "受訓紀錄";
+}
+<h2>受訓紀錄管理</h2>
+<div id="training-app">
+    <div id="error-msg" class="alert alert-danger d-none"></div>
+
+    <div class="mb-2 d-flex gap-2 align-items-center">
+        <input type="text" id="search" class="form-control w-25" placeholder="快速搜尋（員編 / 姓名 / 證照）..." />
+        <button id="btn-search" class="btn btn-outline-primary">搜尋</button>
+        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advanced-search" aria-expanded="false" aria-controls="advanced-search">
+            進階搜尋 ▾
+        </button>
+    </div>
+    <div class="collapse mb-3" id="advanced-search">
+        <div class="card card-body">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label small">員工編號</label>
+                    <input type="text" id="adv-EmployeeId" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">姓名</label>
+                    <input type="text" id="adv-NameContains" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">部門</label>
+                    <select id="adv-Department" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">證照類別</label>
+                    <select id="adv-LicenseType" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">下次回訓區間</label>
+                    <div class="d-flex gap-1">
+                        <input type="date" id="adv-NextReviewFrom" class="form-control form-control-sm" />
+                        <input type="date" id="adv-NextReviewTo" class="form-control form-control-sm" />
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex align-items-end gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="adv-ExpiredOnly" />
+                        <label class="form-check-label" for="adv-ExpiredOnly">僅顯示已過期</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="adv-UnmetHoursOnly" />
+                        <label class="form-check-label" for="adv-UnmetHoursOnly">未達時數 &gt; 0</label>
+                    </div>
+                </div>
+                <div class="col-12 d-flex gap-2 mt-2">
+                    <button id="btn-adv-search" class="btn btn-sm btn-primary">套用進階搜尋</button>
+                    <button id="btn-adv-reset" class="btn btn-sm btn-outline-secondary" type="button">重設</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-2 d-flex gap-2">
+        <button id="btn-add" class="btn btn-primary">新增</button>
+        <button id="btn-edit" class="btn btn-warning" disabled>修改</button>
+        <button id="btn-delete" class="btn btn-danger" disabled>刪除</button>
+        <button id="btn-export" class="btn btn-success ms-auto">匯出 Excel</button>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">受訓單頭</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0" id="training-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>員編</th>
+                            <th>姓名</th>
+                            <th>部門</th>
+                            <th>到職日</th>
+                            <th>證照</th>
+                            <th>描述</th>
+                            <th>應訓時數</th>
+                            <th>最新回訓日</th>
+                            <th>未達時數</th>
+                            <th>下次回訓</th>
+                            <th>備註</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav><ul class="pagination mb-0" id="pagination"></ul></nav>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>受訓單身 <small class="text-muted ms-1" id="detail-header-label"></small></span>
+            <div class="btn-group">
+                <button id="btn-detail-add" class="btn btn-sm btn-outline-primary" disabled title="新增">＋</button>
+                <button id="btn-detail-edit" class="btn btn-sm btn-outline-warning" disabled title="修改">✎</button>
+                <button id="btn-detail-delete" class="btn btn-sm btn-outline-danger" disabled title="刪除">✗</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover mb-0" id="detail-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>日期</th>
+                        <th>類型</th>
+                        <th>時數</th>
+                        <th>是否過期</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" class="text-center text-muted">請先選擇上方受訓單頭</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Training Header Modal -->
+<div class="modal fade" id="header-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="header-form" autocomplete="off">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="header-modal-title">新增受訓單頭</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="header-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">員工編號 <span class="text-danger">*</span></label>
+                        <input type="text" id="m-EmployeeId" class="form-control" list="emp-list" required maxlength="10" />
+                        <datalist id="emp-list"></datalist>
+                        <div class="form-text" id="m-EmployeeId-hint">&nbsp;</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">證照類別 <span class="text-danger">*</span></label>
+                        <select id="m-LicenseType" class="form-select" required></select>
+                        <div class="form-text">僅顯示小類（含小數點）</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">應回訓時數</label>
+                        <input type="text" id="m-RequiredHours" class="form-control" readonly />
+                        <div class="form-text">系統自動帶入，不可修改</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">備註</label>
+                        <input type="text" id="m-Remark" class="form-control" maxlength="70" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Training Detail Modal -->
+<div class="modal fade" id="detail-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="detail-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detail-modal-title">新增受訓紀錄</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="detail-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">受訓日期 <span class="text-danger">*</span></label>
+                        <input type="date" id="m-TrainingDate" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">類型 <span class="text-danger">*</span></label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="m-TrainingType" id="m-TrainingType-1" value="1" required />
+                            <label class="form-check-label" for="m-TrainingType-1">取得證照</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="m-TrainingType" id="m-TrainingType-2" value="2" />
+                            <label class="form-check-label" for="m-TrainingType-2">回訓</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">時數 <span class="text-danger">*</span></label>
+                        <input type="number" id="m-Hours" class="form-control" step="0.1" min="0.1" max="9999.9" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        #training-table tbody tr,
+        #detail-table tbody tr { cursor: pointer; }
+        #training-table tbody tr.row-selected,
+        #detail-table tbody tr.row-selected {
+            background-color: #cfe2ff;
+            box-shadow: inset 4px 0 0 0 #0d6efd;
+        }
+    </style>
+    <script src="~/js/training.js"></script>
+}

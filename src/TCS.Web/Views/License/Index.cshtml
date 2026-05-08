@@ -3,26 +3,188 @@
 }
 <h2>證照管理</h2>
 <div id="license-app">
-    <div class="mb-3 d-flex gap-2">
-        <input type="text" id="search" class="form-control w-25" placeholder="搜尋..." />
+    <div id="error-msg" class="alert alert-danger d-none"></div>
+
+    <div class="mb-2 d-flex gap-2 align-items-center">
+        <input type="text" id="search" class="form-control w-25" placeholder="快速搜尋..." />
         <button id="btn-search" class="btn btn-outline-primary">搜尋</button>
-        <button id="btn-add" class="btn btn-primary">新增</button>
+        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advanced-search" aria-expanded="false" aria-controls="advanced-search">
+            進階搜尋 ▾
+        </button>
     </div>
-    <table class="table table-bordered" id="license-table">
-        <thead>
-            <tr>
-                <th>證照類別</th>
-                <th>說明</th>
-                <th>對應大類</th>
-                <th>所需時數</th>
-                <th>年數</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <nav><ul class="pagination" id="pagination"></ul></nav>
+    <div class="collapse mb-3" id="advanced-search">
+        <div class="card card-body">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label small">證照類別（前綴）</label>
+                    <input type="text" id="adv-LicenseTypePrefix" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">描述</label>
+                    <input type="text" id="adv-DescriptionContains" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">大類</label>
+                    <select id="adv-Category" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-md-3"></div>
+                <div class="col-md-3">
+                    <label class="form-label small">時數區間</label>
+                    <div class="d-flex gap-1">
+                        <input type="number" id="adv-HoursMin" class="form-control form-control-sm" placeholder="最小" min="0" />
+                        <input type="number" id="adv-HoursMax" class="form-control form-control-sm" placeholder="最大" min="0" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">年數區間</label>
+                    <div class="d-flex gap-1">
+                        <input type="number" id="adv-YearsMin" class="form-control form-control-sm" placeholder="最小" min="0" />
+                        <input type="number" id="adv-YearsMax" class="form-control form-control-sm" placeholder="最大" min="0" />
+                    </div>
+                </div>
+                <div class="col-12 d-flex gap-2 mt-2">
+                    <button id="btn-adv-search" class="btn btn-sm btn-primary">套用進階搜尋</button>
+                    <button id="btn-adv-reset" class="btn btn-sm btn-outline-secondary" type="button">重設</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-2 d-flex gap-2">
+        <button id="btn-add" class="btn btn-primary">新增</button>
+        <button id="btn-edit" class="btn btn-warning" disabled>修改</button>
+        <button id="btn-delete" class="btn btn-danger" disabled>刪除</button>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">證照主檔</div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover mb-0" id="license-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>證照類別</th>
+                        <th>說明</th>
+                        <th>對應大類</th>
+                        <th>所需時數</th>
+                        <th>年數</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <nav><ul class="pagination mb-0" id="pagination"></ul></nav>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>廠別需求 <small class="text-muted ms-1" id="req-license-label"></small></span>
+            <div class="btn-group">
+                <button id="btn-req-add" class="btn btn-sm btn-outline-primary" disabled title="新增">＋</button>
+                <button id="btn-req-edit" class="btn btn-sm btn-outline-warning" disabled title="修改">✎</button>
+                <button id="btn-req-delete" class="btn btn-sm btn-outline-danger" disabled title="刪除">✗</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover mb-0" id="req-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>廠別代碼</th>
+                        <th>廠別名稱</th>
+                        <th>需求數</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" class="text-center text-muted">請先選擇上方證照</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+<!-- License Master Modal -->
+<div class="modal fade" id="license-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="license-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="license-modal-title">新增證照</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="license-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">證照類別 <span class="text-danger">*</span></label>
+                        <input type="text" id="m-LicenseType" class="form-control" required maxlength="10" />
+                        <div class="form-text">純整數 = 大類；含小數點（如 1.1、2.3.1）= 小類</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">說明 <span class="text-danger">*</span></label>
+                        <input type="text" id="m-Description" class="form-control" required maxlength="70" />
+                    </div>
+                    <div class="mb-3" id="m-Category-wrap">
+                        <label class="form-label">對應大類 <span class="text-danger" id="m-Category-required">*</span></label>
+                        <select id="m-Category" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所需時數 <span class="text-danger d-none" id="m-Hours-required">*</span></label>
+                        <input type="number" id="m-Hours" class="form-control" min="1" />
+                        <div class="form-text">小類必填且 &gt; 0；大類可空</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">年數 <span class="text-danger d-none" id="m-Years-required">*</span></label>
+                        <input type="number" id="m-Years" class="form-control" min="1" />
+                        <div class="form-text">小類必填且 &ge; 1；大類可空</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Plant Requirement Modal -->
+<div class="modal fade" id="req-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="req-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="req-modal-title">新增廠別需求</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="req-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">廠別 <span class="text-danger">*</span></label>
+                        <select id="m-Plant" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">需求數 <span class="text-danger">*</span></label>
+                        <input type="number" id="m-RequiredCount" class="form-control" min="0" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+    <style>
+        #license-table tbody tr { cursor: pointer; }
+        #license-table tbody tr.row-selected,
+        #req-table tbody tr.row-selected {
+            background-color: #cfe2ff;
+            box-shadow: inset 4px 0 0 0 #0d6efd;
+        }
+        #req-table tbody tr { cursor: pointer; }
+    </style>
     <script src="~/js/license.js"></script>
 }

@@ -6,7 +6,7 @@ namespace TCS.Core.Interfaces;
 
 public interface ITrainingService
 {
-    Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(string? employeeId, string? licenseType, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(string? employeeId, string? licenseType, int page, int pageSize, TrainingSearchQuery? query = null, CancellationToken ct = default);
     Task<TrainingHeaderDto> GetHeaderAsync(string employeeId, string licenseType, CancellationToken ct = default);
     Task<TrainingHeaderDto> CreateHeaderAsync(CreateTrainingHeaderRequest req, CancellationToken ct = default);
     Task<TrainingHeaderDto> UpdateHeaderAsync(UpdateTrainingHeaderRequest req, CancellationToken ct = default);

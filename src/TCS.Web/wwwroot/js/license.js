@@ -1,60 +1,408 @@
 const BASE = window.ERP_BASE || '';
 const API = BASE + '/api/licenses';
+const REQ_API = (lt) => `${BASE}/api/licenses/${encodeURIComponent(lt)}/plants`;
+const PLANT_API = BASE + '/api/plants';
+
+const INTEGER_REGEX = /^\d+$/;
+const DECIMAL_REGEX = /^\d+(\.\d+)+$/;
+
 let currentPage = 1;
 const pageSize = 20;
 
+let cachedLicenses = [];        // 當前頁/篩選結果
+let cachedAllCategories = null; // 所有大類，僅初次載入時取
+let cachedPlants = [];
+let selectedLicense = null;        // 完整列物件
+let selectedRequirement = null;
+
+let licenseModal, reqModal;
+
+// ---------- 主表載入 / 渲染 ----------
+function buildAdvancedQuery() {
+    const q = {
+        LicenseTypePrefix: $('#adv-LicenseTypePrefix').val().trim(),
+        DescriptionContains: $('#adv-DescriptionContains').val().trim(),
+        Category: $('#adv-Category').val(),
+        HoursMin: $('#adv-HoursMin').val(),
+        HoursMax: $('#adv-HoursMax').val(),
+        YearsMin: $('#adv-YearsMin').val(),
+        YearsMax: $('#adv-YearsMax').val()
+    };
+    const empty =
+        !q.LicenseTypePrefix && !q.DescriptionContains && !q.Category
+        && q.HoursMin === '' && q.HoursMax === ''
+        && q.YearsMin === '' && q.YearsMax === '';
+    return empty ? null : q;
+}
+
 async function loadLicenses() {
-    const search = $('#search').val();
-    const res = await fetch(`${API}?page=${currentPage}&pageSize=${pageSize}&search=${encodeURIComponent(search || '')}`);
-    if (!res.ok) { showError(await res.text()); return; }
+    const advanced = buildAdvancedQuery();
+    const params = new URLSearchParams({ page: currentPage, pageSize });
+    if (advanced) {
+        Object.entries(advanced).forEach(([k, v]) => {
+            if (v !== '' && v !== null && v !== undefined) params.set(`query.${k}`, v);
+        });
+    } else {
+        const search = $('#search').val();
+        if (search) params.set('search', search);
+    }
+
+    const res = await fetch(`${API}?${params}`);
+    if (!res.ok) { Toast.error(await readErrorMessage(res, '載入失敗')); return; }
     const data = await res.json();
-    renderTable(data.Items);
+    cachedLicenses = data.Items || [];
+    renderTable(cachedLicenses);
     renderPagination(data.TotalPages, data.CurrentPage);
+    clearSelection();
 }
 
 function renderTable(items) {
-    const tbody = $('#license-table tbody').empty();
+    const $tbody = $('#license-table tbody').empty();
+    if (!items.length) {
+        $tbody.append($('<tr></tr>').append($('<td colspan="5" class="text-center text-muted"></td>').text('（無資料）')));
+        return;
+    }
     items.forEach(item => {
-        tbody.append(`<tr>
-            <td>${item.LicenseType}</td>
-            <td>${item.Description}</td>
-            <td>${item.Category ?? ''}</td>
-            <td>${item.Hours ?? ''}</td>
-            <td>${item.Years ?? ''}</td>
-            <td>
-                <button class="btn btn-sm btn-warning" onclick="editLicense('${item.LicenseType}')">修改</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteLicense('${item.LicenseType}')">刪除</button>
-            </td>
-        </tr>`);
+        const $tr = $('<tr></tr>').data('row', item);
+        $('<td></td>').text(item.LicenseType ?? '').appendTo($tr);
+        $('<td></td>').text(item.Description ?? '').appendTo($tr);
+        $('<td></td>').text(item.Category ?? '').appendTo($tr);
+        $('<td></td>').text(item.Hours ?? '').appendTo($tr);
+        $('<td></td>').text(item.Years ?? '').appendTo($tr);
+        $tr.on('click', () => selectLicense($tr, item));
+        $tbody.append($tr);
     });
 }
 
 function renderPagination(totalPages, page) {
-    const ul = $('#pagination').empty();
+    const $ul = $('#pagination').empty();
     for (let i = 1; i <= totalPages; i++) {
-        ul.append(`<li class="page-item ${i === page ? 'active' : ''}">
-            <a class="page-link" href="#" onclick="gotoPage(${i}); return false;">${i}</a>
-        </li>`);
+        const $li = $('<li></li>').addClass('page-item' + (i === page ? ' active' : ''));
+        $('<a class="page-link" href="#"></a>')
+            .text(i)
+            .on('click', (e) => { e.preventDefault(); currentPage = i; loadLicenses(); })
+            .appendTo($li);
+        $ul.append($li);
     }
 }
 
-function gotoPage(page) { currentPage = page; loadLicenses(); }
-
-async function deleteLicense(licenseType) {
-    if (!confirm(`確認刪除 ${licenseType}？`)) return;
-    const res = await fetch(`${API}/${encodeURIComponent(licenseType)}`, { method: 'DELETE' });
-    if (res.ok) loadLicenses();
-    else { const err = await res.json(); alert(err.message); }
+// ---------- 選列 / 高亮 ----------
+function selectLicense($tr, item) {
+    $('#license-table tbody tr.row-selected').removeClass('row-selected');
+    $tr.addClass('row-selected');
+    selectedLicense = item;
+    TcsAuth.enableIfAllowed('#btn-edit');
+    TcsAuth.enableIfAllowed('#btn-delete');
+    TcsAuth.enableIfAllowed('#btn-req-add');
+    $('#req-license-label').text(`(${item.LicenseType} ${item.Description})`);
+    loadRequirements(item.LicenseType);
 }
 
-function editLicense(licenseType) {
-    window.location.href = `${BASE}/License/Edit/${encodeURIComponent(licenseType)}`;
+function clearSelection() {
+    selectedLicense = null;
+    selectedRequirement = null;
+    $('#license-table tbody tr.row-selected').removeClass('row-selected');
+    $('#btn-edit, #btn-delete').prop('disabled', true);
+    $('#btn-req-add, #btn-req-edit, #btn-req-delete').prop('disabled', true);
+    $('#req-license-label').text('');
+    const $tbody = $('#req-table tbody').empty();
+    $tbody.append($('<tr></tr>').append($('<td colspan="3" class="text-center text-muted"></td>').text('請先選擇上方證照')));
 }
 
-function showError(msg) { console.error(msg); }
+// ---------- 廠別需求子表 ----------
+async function loadRequirements(licenseType) {
+    selectedRequirement = null;
+    $('#btn-req-edit, #btn-req-delete').prop('disabled', true);
+    // 行選列觸發前先重設子表選列按鈕為 disabled，等選了子表列再依 action 啟用
 
+    const res = await fetch(REQ_API(licenseType));
+    const $tbody = $('#req-table tbody').empty();
+    if (!res.ok) {
+        $tbody.append($('<tr></tr>').append(
+            $('<td colspan="3" class="text-center text-danger"></td>').text('載入失敗')
+        ));
+        return;
+    }
+    const items = await res.json();
+    if (!items.length) {
+        $tbody.append($('<tr></tr>').append(
+            $('<td colspan="3" class="text-center text-muted"></td>').text('（無資料）')
+        ));
+        return;
+    }
+    items.forEach(r => {
+        const $tr = $('<tr></tr>').data('row', r);
+        $('<td></td>').text(r.Plant ?? '').appendTo($tr);
+        $('<td></td>').text(r.PlantName ?? '').appendTo($tr);
+        $('<td></td>').text(r.RequiredCount ?? '').appendTo($tr);
+        $tr.on('click', () => {
+            $('#req-table tbody tr.row-selected').removeClass('row-selected');
+            $tr.addClass('row-selected');
+            selectedRequirement = r;
+            TcsAuth.enableIfAllowed('#btn-req-edit');
+            TcsAuth.enableIfAllowed('#btn-req-delete');
+        });
+        $tbody.append($tr);
+    });
+}
+
+// ---------- License Modal ----------
+function openLicenseModal(mode, item) {
+    $('#license-modal-error').addClass('d-none').text('');
+    $('#license-modal-title').text(mode === 'create' ? '新增證照' : '修改證照');
+
+    populateCategoryOptions();
+
+    if (mode === 'create') {
+        $('#m-LicenseType').val('').prop('readonly', false);
+        $('#m-Description').val('');
+        $('#m-Category').val('');
+        $('#m-Hours').val('');
+        $('#m-Years').val('');
+    } else {
+        $('#m-LicenseType').val(item.LicenseType).prop('readonly', true);
+        $('#m-Description').val(item.Description ?? '');
+        $('#m-Category').val(item.Category ?? '');
+        $('#m-Hours').val(item.Hours ?? '');
+        $('#m-Years').val(item.Years ?? '');
+    }
+    $('#license-form').data('mode', mode);
+    syncCategoryVisibility();
+    licenseModal.show();
+}
+
+function populateCategoryOptions() {
+    const $sel = $('#m-Category').empty();
+    $('<option></option>').val('').text('-- 請選擇 --').appendTo($sel);
+    cachedLicenses
+        .filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType))
+        .forEach(x => {
+            $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
+        });
+}
+
+async function ensureAllCategoriesLoaded() {
+    if (cachedAllCategories !== null) return;
+    // 一次撈全部，僅供下拉用；不影響當前篩選
+    const res = await fetch(`${API}?page=1&pageSize=9999`);
+    if (!res.ok) { cachedAllCategories = []; return; }
+    const data = await res.json();
+    cachedAllCategories = (data.Items || []).filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
+
+    const $sel = $('#adv-Category').empty();
+    $('<option></option>').val('').text('（不限）').appendTo($sel);
+    cachedAllCategories.forEach(x => {
+        $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
+    });
+}
+
+function clearAdvancedFields() {
+    $('#advanced-search').find('input, select').val('');
+}
+
+function isLicenseTypeMajor(value) {
+    return INTEGER_REGEX.test((value ?? '').trim());
+}
+
+function isLicenseTypeMinor(value) {
+    return DECIMAL_REGEX.test((value ?? '').trim());
+}
+
+function syncCategoryVisibility() {
+    const v = $('#m-LicenseType').val();
+    if (isLicenseTypeMajor(v)) {
+        $('#m-Category-wrap').hide();
+        $('#m-Category').val('');
+        $('#m-Hours-required, #m-Years-required').addClass('d-none');
+        $('#m-Hours, #m-Years').prop('required', false);
+    } else {
+        $('#m-Category-wrap').show();
+        const minor = isLicenseTypeMinor(v);
+        $('#m-Hours-required, #m-Years-required').toggleClass('d-none', !minor);
+        $('#m-Hours, #m-Years').prop('required', minor);
+    }
+}
+
+async function submitLicense(e) {
+    e.preventDefault();
+    const lt = $('#m-LicenseType').val().trim();
+    const isMajor = isLicenseTypeMajor(lt);
+    const isMinor = isLicenseTypeMinor(lt);
+
+    if (!isMajor && !isMinor) {
+        showModalError('#license-modal-error', '證照類別格式不正確：純整數（大類）或含小數點（小類）');
+        return;
+    }
+
+    const body = {
+        LicenseType: lt,
+        Description: $('#m-Description').val().trim(),
+        Category: isMajor ? null : ($('#m-Category').val().trim() || null),
+        Hours: $('#m-Hours').val() !== '' ? parseInt($('#m-Hours').val(), 10) : null,
+        Years: $('#m-Years').val() !== '' ? parseInt($('#m-Years').val(), 10) : null
+    };
+
+    // 小類前端基本檢核（後端 FluentValidation 會再次驗證）
+    if (isMinor) {
+        if (!body.Category) { showModalError('#license-modal-error', '小類需指定對應大類'); return; }
+        if (body.Hours == null || body.Hours <= 0) { showModalError('#license-modal-error', '小類所需時數必填且 > 0'); return; }
+        if (body.Years == null || body.Years < 1) { showModalError('#license-modal-error', '小類年數必填且 ≥ 1'); return; }
+    }
+
+    const mode = $('#license-form').data('mode');
+    const url = mode === 'create' ? API : `${API}/${encodeURIComponent(lt)}`;
+    const method = mode === 'create' ? 'POST' : 'PUT';
+    const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    if (res.ok || res.status === 201) {
+        licenseModal.hide();
+        Toast.success(mode === 'create' ? '證照已新增' : '證照已更新');
+        await loadLicenses();
+        return;
+    }
+    const msg = await readErrorMessage(res, '儲存失敗');
+    showModalError('#license-modal-error', msg);
+}
+
+async function deleteSelectedLicense() {
+    if (!selectedLicense) return;
+    if (!confirm(`確認刪除 ${selectedLicense.LicenseType}？`)) return;
+    const res = await fetch(`${API}/${encodeURIComponent(selectedLicense.LicenseType)}`, { method: 'DELETE' });
+    if (res.ok) { Toast.success('證照已刪除'); await loadLicenses(); return; }
+    Toast.error(await readErrorMessage(res, '刪除失敗'));
+}
+
+// ---------- Plant Requirement Modal ----------
+async function ensurePlantsLoaded() {
+    if (cachedPlants.length) return;
+    const res = await fetch(PLANT_API);
+    if (!res.ok) { cachedPlants = []; return; }
+    cachedPlants = await res.json();
+}
+
+async function openRequirementModal(mode, item) {
+    if (!selectedLicense) return;
+    $('#req-modal-error').addClass('d-none').text('');
+    $('#req-modal-title').text(mode === 'create' ? '新增廠別需求' : '修改廠別需求');
+    await ensurePlantsLoaded();
+
+    const $sel = $('#m-Plant').empty();
+    $('<option></option>').val('').text('-- 請選擇 --').appendTo($sel);
+    cachedPlants.forEach(p => {
+        const label = (p.PlantName ? `${p.PlantCode} ${p.PlantName}` : p.PlantCode);
+        $('<option></option>').val(p.PlantCode).text(label).appendTo($sel);
+    });
+
+    if (mode === 'create') {
+        $('#m-Plant').val('').prop('disabled', false);
+        $('#m-RequiredCount').val('');
+    } else {
+        $('#m-Plant').val(item.Plant).prop('disabled', true);
+        $('#m-RequiredCount').val(item.RequiredCount);
+    }
+    $('#req-form').data('mode', mode);
+    reqModal.show();
+}
+
+async function submitRequirement(e) {
+    e.preventDefault();
+    if (!selectedLicense) return;
+    const plant = $('#m-Plant').val();
+    const requiredCount = parseInt($('#m-RequiredCount').val(), 10);
+    if (!plant) { showModalError('#req-modal-error', '請選擇廠別'); return; }
+    if (Number.isNaN(requiredCount) || requiredCount < 0) { showModalError('#req-modal-error', '需求數必須 ≥ 0'); return; }
+
+    const body = { LicenseType: selectedLicense.LicenseType, Plant: plant, RequiredCount: requiredCount };
+    const mode = $('#req-form').data('mode');
+    const base = REQ_API(selectedLicense.LicenseType);
+    const url = mode === 'create' ? base : `${base}/${encodeURIComponent(plant)}`;
+    const method = mode === 'create' ? 'POST' : 'PUT';
+    const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    if (res.ok || res.status === 201) {
+        reqModal.hide();
+        Toast.success(mode === 'create' ? '廠別需求已新增' : '廠別需求已更新');
+        await loadRequirements(selectedLicense.LicenseType);
+        return;
+    }
+    showModalError('#req-modal-error', await readErrorMessage(res, '儲存失敗'));
+}
+
+async function deleteSelectedRequirement() {
+    if (!selectedLicense || !selectedRequirement) return;
+    if (!confirm(`確認刪除 ${selectedRequirement.Plant}？`)) return;
+    const url = `${REQ_API(selectedLicense.LicenseType)}/${encodeURIComponent(selectedRequirement.Plant)}`;
+    const res = await fetch(url, { method: 'DELETE' });
+    if (res.ok) { Toast.success('廠別需求已刪除'); await loadRequirements(selectedLicense.LicenseType); return; }
+    Toast.error(await readErrorMessage(res, '刪除失敗'));
+}
+
+// ---------- 共用 ----------
+async function readErrorMessage(res, fallback) {
+    try {
+        const err = await res.json();
+        if (err && err.message) return err.message;
+    } catch { /* ignore */ }
+    return fallback;
+}
+
+function showModalError(selector, msg) {
+    $(selector).text(msg || '操作失敗').removeClass('d-none');
+}
+
+// ---------- 初始化 ----------
 $(function () {
-    $('#btn-search').on('click', () => { currentPage = 1; loadLicenses(); });
-    $('#btn-add').on('click', () => { window.location.href = `${BASE}/License/Create`; });
+    licenseModal = new bootstrap.Modal('#license-modal');
+    reqModal = new bootstrap.Modal('#req-modal');
+
+    // 依 JWT action 控制按鈕（spec §6-3）
+    TcsAuth.applyButtonGuards({
+        '#btn-add':        '新增',
+        '#btn-edit':       '修改',
+        '#btn-delete':     '刪除',
+        '#btn-req-add':    '新增',
+        '#btn-req-edit':   '修改',
+        '#btn-req-delete': '刪除'
+    });
+
+    ensureAllCategoriesLoaded();
+
+    $('#btn-search').on('click', () => {
+        // 快速搜尋觸發時，進階搜尋自動清空
+        clearAdvancedFields();
+        currentPage = 1;
+        loadLicenses();
+    });
+    $('#btn-adv-search').on('click', () => {
+        // 進階生效時，快速搜尋自動清空（spec §7-1）
+        $('#search').val('');
+        currentPage = 1;
+        loadLicenses();
+    });
+    $('#btn-adv-reset').on('click', () => {
+        clearAdvancedFields();
+        currentPage = 1;
+        loadLicenses();
+    });
+    $('#btn-add').on('click', () => openLicenseModal('create'));
+    $('#btn-edit').on('click', () => { if (selectedLicense) openLicenseModal('edit', selectedLicense); });
+    $('#btn-delete').on('click', deleteSelectedLicense);
+
+    $('#btn-req-add').on('click', () => openRequirementModal('create'));
+    $('#btn-req-edit').on('click', () => { if (selectedRequirement) openRequirementModal('edit', selectedRequirement); });
+    $('#btn-req-delete').on('click', deleteSelectedRequirement);
+
+    $('#license-form').on('submit', submitLicense);
+    $('#req-form').on('submit', submitRequirement);
+    $('#m-LicenseType').on('input', syncCategoryVisibility);
+
     loadLicenses();
 });

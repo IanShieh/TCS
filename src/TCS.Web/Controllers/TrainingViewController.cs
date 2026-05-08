@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace TCS.Web.Controllers;
 
 [Authorize]
-public class TrainingHeaderController : Controller
+public class TrainingController : Controller
 {
     public IActionResult Index() => View();
 }

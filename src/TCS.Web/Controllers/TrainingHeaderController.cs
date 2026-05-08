@@ -20,8 +20,9 @@ public class TrainingHeaderApiController : ControllerBase
         [FromQuery] string? licenseType,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] TrainingSearchQuery? query = null,
         CancellationToken ct = default)
-        => Ok(await _svc.GetHeadersAsync(employeeId, licenseType, page, pageSize, ct));
+        => Ok(await _svc.GetHeadersAsync(employeeId, licenseType, page, pageSize, query, ct));
 
     [HttpGet("{employeeId}/{licenseType}")]
     public async Task<IActionResult> GetById(string employeeId, string licenseType, CancellationToken ct = default)

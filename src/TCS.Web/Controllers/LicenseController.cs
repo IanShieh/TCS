@@ -19,8 +19,9 @@ public class LicenseApiController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null,
+        [FromQuery] LicenseSearchQuery? query = null,
         CancellationToken ct = default)
-        => Ok(await _svc.GetAllAsync(page, pageSize, search, ct));
+        => Ok(await _svc.GetAllAsync(page, pageSize, search, query, ct));
 
     [HttpGet("{licenseType}")]
     public async Task<IActionResult> GetById(string licenseType, CancellationToken ct = default)

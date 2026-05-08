@@ -6,7 +6,7 @@ namespace TCS.Core.Interfaces;
 
 public interface ILicenseService
 {
-    Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search = null, CancellationToken ct = default);
+    Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search = null, LicenseSearchQuery? query = null, CancellationToken ct = default);
     Task<LicenseMasterDto> GetByIdAsync(string licenseType, CancellationToken ct = default);
     Task<LicenseMasterDto> CreateAsync(CreateLicenseMasterRequest req, CancellationToken ct = default);
     Task<LicenseMasterDto> UpdateAsync(UpdateLicenseMasterRequest req, CancellationToken ct = default);

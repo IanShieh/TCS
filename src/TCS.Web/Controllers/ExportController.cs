@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TCS.Core.DTOs.Requests;
 using TCS.Core.Interfaces;
 
 namespace TCS.Web.Controllers;
@@ -22,9 +23,10 @@ public class ExportController : ControllerBase
     public async Task<IActionResult> ExportHeaders(
         [FromQuery] string? employeeId,
         [FromQuery] string? licenseType,
+        [FromQuery] TrainingSearchQuery? query = null,
         CancellationToken ct = default)
     {
-        var result = await _trainingSvc.GetHeadersAsync(employeeId, licenseType, 1, int.MaxValue, ct);
+        var result = await _trainingSvc.GetHeadersAsync(employeeId, licenseType, 1, int.MaxValue, query, ct);
         var bytes = _excelSvc.ExportTrainingHeaders(result.Items);
         return File(bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -19,15 +19,33 @@ public class LicenseService : ILicenseService
         _plantRepo = plantRepo;
     }
 
-    public async Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search = null, CancellationToken ct = default)
+    public async Task<PagedResult<LicenseMasterDto>> GetAllAsync(int page, int pageSize, string? search = null, LicenseSearchQuery? query = null, CancellationToken ct = default)
     {
-        var all = await _repo.GetAllAsync(ct);
-        if (!string.IsNullOrEmpty(search))
+        IEnumerable<LicenseMaster> all = await _repo.GetAllAsync(ct);
+
+        // Spec §7-1：進階搜尋生效時，快速搜尋自動失效；前端會清空 search，後端再保險過濾。
+        var advancedActive = query is { IsEmpty: false };
+        if (advancedActive)
+        {
+            if (!string.IsNullOrWhiteSpace(query!.LicenseTypePrefix))
+                all = all.Where(l => l.LicenseType.StartsWith(query.LicenseTypePrefix, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(query.DescriptionContains))
+                all = all.Where(l => l.Description.Contains(query.DescriptionContains, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(query.Category))
+                all = all.Where(l => l.Category == query.Category);
+            if (query.HoursMin is not null) all = all.Where(l => l.Hours.HasValue && l.Hours.Value >= query.HoursMin);
+            if (query.HoursMax is not null) all = all.Where(l => l.Hours.HasValue && l.Hours.Value <= query.HoursMax);
+            if (query.YearsMin is not null) all = all.Where(l => l.Years.HasValue && l.Years.Value >= query.YearsMin);
+            if (query.YearsMax is not null) all = all.Where(l => l.Years.HasValue && l.Years.Value <= query.YearsMax);
+        }
+        else if (!string.IsNullOrEmpty(search))
+        {
             all = all.Where(l => l.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
-                              || l.LicenseType.Contains(search, StringComparison.OrdinalIgnoreCase))
-                     .ToList();
+                              || l.LicenseType.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
         var dtos = all.Select(l => l.ToDto()).ToList();
-        return PaginationHelper.Paginate(dtos, page, pageSize, search);
+        return PaginationHelper.Paginate(dtos, page, pageSize, advancedActive ? null : search);
     }
 
     public async Task<LicenseMasterDto> GetByIdAsync(string licenseType, CancellationToken ct = default)

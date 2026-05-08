@@ -28,9 +28,14 @@ public class TrainingService : ITrainingService
     }
 
     public async Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(
-        string? employeeId, string? licenseType, int page, int pageSize, CancellationToken ct = default)
+        string? employeeId, string? licenseType, int page, int pageSize, TrainingSearchQuery? query = null, CancellationToken ct = default)
     {
-        var headers = await _repo.GetHeadersAsync(employeeId, licenseType, ct);
+        // 進階搜尋生效時，DB 層的 employeeId/licenseType 改採 query 提供值（spec §7-1：兩段式同時生效以進階為準）
+        var advancedActive = query?.IsAdvancedActive == true;
+        var effEmployeeId = advancedActive ? query!.EmployeeId : employeeId;
+        var effLicenseType = advancedActive ? query!.LicenseType : licenseType;
+
+        var headers = await _repo.GetHeadersAsync(effEmployeeId, effLicenseType, ct);
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         var dtos = new List<TrainingHeaderDto>();
@@ -40,7 +45,35 @@ public class TrainingService : ITrainingService
             var emp = await _empRepo.GetByIdAsync(h.EmployeeId, ct);
             dtos.Add(h.ToDto(emp, h.LicenseMasterNav, details, today));
         }
-        return PaginationHelper.Paginate(dtos, page, pageSize);
+
+        IEnumerable<TrainingHeaderDto> filtered = dtos;
+
+        if (advancedActive)
+        {
+            if (!string.IsNullOrWhiteSpace(query!.NameContains))
+                filtered = filtered.Where(d => d.EmployeeName != null && d.EmployeeName.Contains(query.NameContains, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(query.Department))
+                filtered = filtered.Where(d => d.Department == query.Department);
+            if (query.ExpiredOnly == true)
+                filtered = filtered.Where(d => d.OverallStatus == OverallStatus.已過期);
+            if (query.UnmetHoursOnly == true)
+                filtered = filtered.Where(d => d.RemainingHours > 0);
+            if (query.NextReviewFrom is not null)
+                filtered = filtered.Where(d => d.NextReviewDate.HasValue && d.NextReviewDate.Value >= query.NextReviewFrom.Value);
+            if (query.NextReviewTo is not null)
+                filtered = filtered.Where(d => d.NextReviewDate.HasValue && d.NextReviewDate.Value <= query.NextReviewTo.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(query?.Search))
+        {
+            var kw = query.Search!;
+            filtered = filtered.Where(d =>
+                (d.EmployeeId?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true)
+                || (d.EmployeeName?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true)
+                || (d.LicenseType?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true)
+                || (d.Description?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true));
+        }
+
+        return PaginationHelper.Paginate(filtered.ToList(), page, pageSize);
     }
 
     public async Task<TrainingHeaderDto> GetHeaderAsync(string employeeId, string licenseType, CancellationToken ct = default)

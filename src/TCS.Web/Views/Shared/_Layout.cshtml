@@ -9,10 +9,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="/">TCS 受訓證件作業</a>
+            <a class="navbar-brand" href="@(Context.Request.PathBase)/">TCS 受訓證件作業</a>
             <div class="navbar-nav">
                 <a class="nav-link" href="@(Context.Request.PathBase)/License">證照管理</a>
-                <a class="nav-link" href="@(Context.Request.PathBase)/TrainingHeader">受訓紀錄</a>
+                <a class="nav-link" href="@(Context.Request.PathBase)/Training">受訓紀錄</a>
             </div>
         </div>
     </nav>
@@ -23,6 +23,8 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script>window.ERP_BASE = '@Context.Request.PathBase';</script>
     <script src="~/_content/ERP.Auth.Common/js/erp-auth.js"></script>
+    <script src="~/js/tcs-auth.js"></script>
+    <script src="~/js/toast.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
