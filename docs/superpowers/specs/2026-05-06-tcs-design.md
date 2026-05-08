@@ -4,7 +4,7 @@
 |---|---|
 | 作業代號 | TCS（Training Certificate System） |
 | 撰寫日期 | 2026-05-06 |
-| 版本 | 0.1（草案，待技術計畫產出後升 1.0） |
+| 版本 | 0.2（2026-05-08 同步實作 API 路徑；草案） |
 | 對應憲法 | 鼎新 ERP 作業轉換專案憲法 v1.2.0 |
 | 模板來源 | DingxinErpTemplate（Clean Architecture / Razor Pages / .NET 8） |
 
@@ -190,30 +190,30 @@ Employee (1) ── (N) TrainingHeader                 [唯讀關聯，不 Casca
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/license` | — |
-| GET | `/api/license/{licenseType}` | — |
-| POST | `/api/license` | 新增 |
-| PUT | `/api/license/{licenseType}` | 修改 |
-| DELETE | `/api/license/{licenseType}` | 刪除 |
+| GET | `/api/licenses` | — |
+| GET | `/api/licenses/{licenseType}` | — |
+| POST | `/api/licenses` | 新增 |
+| PUT | `/api/licenses/{licenseType}` | 修改 |
+| DELETE | `/api/licenses/{licenseType}` | 刪除 |
 
 ### 5-2. 證照廠別需求（模組 B）
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/license/{licenseType}/requirements` | — |
-| POST | `/api/license/{licenseType}/requirements` | 新增 |
-| PUT | `/api/license/{licenseType}/requirements/{plant}` | 修改 |
-| DELETE | `/api/license/{licenseType}/requirements/{plant}` | 刪除 |
+| GET | `/api/licenses/{licenseType}/plants` | — |
+| POST | `/api/licenses/{licenseType}/plants` | 新增 |
+| PUT | `/api/licenses/{licenseType}/plants/{plant}` | 修改 |
+| DELETE | `/api/licenses/{licenseType}/plants/{plant}` | 刪除 |
 
 ### 5-3. 受訓異動單頭（模組 C）
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/training` | — |
-| GET | `/api/training/{empId}/{licType}` | — |
-| POST | `/api/training` | 新增 |
-| PUT | `/api/training/{empId}/{licType}` | 修改 |
-| DELETE | `/api/training/{empId}/{licType}` | 刪除 |
+| GET | `/api/training-headers` | — |
+| GET | `/api/training-headers/{empId}/{licType}` | — |
+| POST | `/api/training-headers` | 新增 |
+| PUT | `/api/training-headers/{empId}/{licType}` | 修改 |
+| DELETE | `/api/training-headers/{empId}/{licType}` | 刪除 |
 
 ### 5-4. 受訓異動單身（模組 D）
 
@@ -221,23 +221,25 @@ Employee (1) ── (N) TrainingHeader                 [唯讀關聯，不 Casca
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/training/{empId}/{licType}/details` | — |
-| GET | `/api/training/{empId}/{licType}/details/{date}` | — |
-| POST | `/api/training/{empId}/{licType}/details` | 新增 |
-| PUT | `/api/training/{empId}/{licType}/details/{date}` | 修改 |
-| DELETE | `/api/training/{empId}/{licType}/details/{date}` | 刪除 |
+| GET | `/api/training-details/{empId}/{licType}` | — |
+| GET | `/api/training-details/{empId}/{licType}/{date}` | — |
+| POST | `/api/training-details/{empId}/{licType}` | 新增 |
+| PUT | `/api/training-details/{empId}/{licType}/{date}` | 修改 |
+| DELETE | `/api/training-details/{empId}/{licType}/{date}` | 刪除 |
 
 ### 5-5. 員工查詢（模組 E）
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/employee?keyword=...` | — |
+| GET | `/api/employees` | — |
+
+> **實作說明**：`?keyword=` 查詢參數未實作。前端以 HTML5 `<datalist>` 一次載入全部員工（約 2,000 筆）供 `EmployeeId` 欄位自動補完；效能已由使用者確認可接受，不需要後端逐字過濾端點。
 
 ### 5-6. Excel 匯出（模組 F）
 
 | Method | Path | 所需 action |
 |---|---|---|
-| GET | `/api/training/export?...filters` | 儲存 |
+| GET | `/api/export/training-headers?...filters` | 儲存 |
 
 ---
 
