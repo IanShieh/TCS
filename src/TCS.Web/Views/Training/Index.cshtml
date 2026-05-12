@@ -136,17 +136,22 @@
                         <datalist id="emp-list"></datalist>
                         <div class="form-text" id="m-EmployeeId-hint">&nbsp;</div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="m-LicenseType-group">
                         <label class="form-label">證照類別 <span class="text-danger">*</span></label>
                         <select id="m-LicenseType" class="form-select" required></select>
-                        <div class="form-text">僅顯示小類（含小數點）</div>
+                        <div class="form-text">大類選「其他」可自填名稱存入備註</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">應回訓時數</label>
                         <input type="text" id="m-RequiredHours" class="form-control" readonly />
                         <div class="form-text">系統自動帶入，不可修改</div>
                     </div>
-                    <div class="mb-3">
+                    <div id="m-CustomName-group" class="mb-3 d-none">
+                        <label class="form-label">自定義證照名稱 <span class="text-danger">*</span></label>
+                        <input type="text" id="m-CustomName" class="form-control" maxlength="70" />
+                        <div class="form-text">此名稱將存入「備註」欄位</div>
+                    </div>
+                    <div id="m-Remark-group" class="mb-3">
                         <label class="form-label">備註</label>
                         <input type="text" id="m-Remark" class="form-control" maxlength="70" />
                     </div>
@@ -204,10 +209,14 @@
     <style>
         #training-table tbody tr,
         #detail-table tbody tr { cursor: pointer; }
-        #training-table tbody tr.row-selected,
-        #detail-table tbody tr.row-selected {
+
+        #training-table tbody tr.row-selected > td,
+        #detail-table tbody tr.row-selected > td {
             background-color: #cfe2ff;
-            box-shadow: inset 4px 0 0 0 #0d6efd;
+        }
+        #training-table tbody tr.row-selected > td:first-child,
+        #detail-table tbody tr.row-selected > td:first-child {
+            border-left: 3px solid #0d6efd;
         }
     </style>
     <script src="~/js/training.js"></script>

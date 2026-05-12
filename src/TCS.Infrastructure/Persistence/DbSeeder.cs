@@ -24,6 +24,16 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
 
+        // License plant requirements
+        db.LicensePlantRequirements.AddRange(
+            new LicensePlantRequirement { LicenseType = "1.1", Plant = "TW01", RequiredCount = 2 },
+            new LicensePlantRequirement { LicenseType = "1.1", Plant = "TW02", RequiredCount = 1 },
+            new LicensePlantRequirement { LicenseType = "1.2", Plant = "TW01", RequiredCount = 1 },
+            new LicensePlantRequirement { LicenseType = "2.1", Plant = "TW01", RequiredCount = 3 },
+            new LicensePlantRequirement { LicenseType = "2.1", Plant = "TW02", RequiredCount = 2 }
+        );
+        await db.SaveChangesAsync();
+
         // Training headers
         var headers = new[]
         {

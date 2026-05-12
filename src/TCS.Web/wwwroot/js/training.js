@@ -11,7 +11,8 @@ const pageSize = 20;
 
 let cachedEmployees = null;     // EmployeeDto[]
 let employeeMap = {};            // EmployeeId → EmployeeDto
-let cachedMinorLicenses = null;  // 小類 LicenseMasterDto[]
+let cachedAllLicenses = null;    // all LicenseMasterDto[]
+let cachedMinorLicenses = null;  // derived: 小類 only
 let licenseMap = {};             // LicenseType → LicenseMasterDto
 
 let selectedHeader = null;
@@ -180,16 +181,16 @@ async function ensureEmployeesLoaded() {
     });
 }
 
-async function ensureMinorLicensesLoaded() {
-    if (cachedMinorLicenses) return;
-    // 證照規格主檔有限，撈大筆數一次到位
+async function ensureAllLicensesLoaded() {
+    if (cachedAllLicenses) return;
     const res = await fetch(`${LICENSE_API}?page=1&pageSize=9999`);
-    if (!res.ok) { cachedMinorLicenses = []; return; }
+    if (!res.ok) { cachedAllLicenses = []; cachedMinorLicenses = []; return; }
     const data = await res.json();
     const all = data.Items || [];
-    cachedMinorLicenses = all.filter(x => !x.IsCategory && !INTEGER_REGEX.test(x.LicenseType));
+    cachedAllLicenses = all;
     licenseMap = {};
     all.forEach(x => { licenseMap[x.LicenseType] = x; });
+    cachedMinorLicenses = cachedAllLicenses.filter(x => !x.IsCategory && !INTEGER_REGEX.test(x.LicenseType));
 }
 
 // ---------- Header Modal ----------
@@ -197,12 +198,18 @@ async function openHeaderModal(mode, item) {
     $('#header-modal-error').addClass('d-none').text('');
     $('#header-modal-title').text(mode === 'create' ? '新增受訓單頭' : '修改受訓單頭');
 
-    await Promise.all([ensureEmployeesLoaded(), ensureMinorLicensesLoaded()]);
+    await Promise.all([ensureEmployeesLoaded(), ensureAllLicensesLoaded()]);
 
     const $licSel = $('#m-LicenseType').empty();
     $('<option></option>').val('').text('-- 請選擇 --').appendTo($licSel);
-    cachedMinorLicenses.forEach(x => {
-        $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($licSel);
+    const cats = cachedAllLicenses.filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
+    cats.forEach(cat => {
+        const $grp = $('<optgroup>').attr('label', `${cat.LicenseType} ${cat.Description}`);
+        cachedAllLicenses.filter(x => x.Category === cat.LicenseType).forEach(x => {
+            $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($grp);
+        });
+        $('<option></option>').val(cat.LicenseType).text(`其他（${cat.Description}）`).attr('data-is-other', 'true').appendTo($grp);
+        $grp.appendTo($licSel);
     });
 
     if (mode === 'create') {
@@ -219,6 +226,7 @@ async function openHeaderModal(mode, item) {
         updateEmployeeHint();
     }
     $('#header-form').data('mode', mode);
+    updateCustomNameVisibility();
     headerModal.show();
 }
 
@@ -234,12 +242,25 @@ function updateRequiredHoursOnLicenseChange() {
     $('#m-RequiredHours').val(lic && lic.Hours != null ? lic.Hours : '');
 }
 
+function updateCustomNameVisibility() {
+    const isOther = $('#m-LicenseType option:selected').data('isOther') === true;
+    if (isOther) {
+        $('#m-CustomName-group').removeClass('d-none');
+        $('#m-Remark-group').addClass('d-none');
+        $('#m-CustomName').prop('required', true);
+    } else {
+        $('#m-CustomName-group').addClass('d-none');
+        $('#m-Remark-group').removeClass('d-none');
+        $('#m-CustomName').prop('required', false);
+    }
+}
+
 async function submitHeader(e) {
     e.preventDefault();
     const mode = $('#header-form').data('mode');
     const employeeId = $('#m-EmployeeId').val().trim();
     const licenseType = $('#m-LicenseType').val();
-    const remark = $('#m-Remark').val().trim() || null;
+    let remark = $('#m-Remark').val().trim() || null;
 
     if (mode === 'create') {
         if (!employeeMap[employeeId]) {
@@ -249,6 +270,14 @@ async function submitHeader(e) {
         if (!licenseType) {
             showModalError('#header-modal-error', '請選擇證照類別');
             return;
+        }
+        if ($('#m-LicenseType option:selected').data('isOther') === true) {
+            const customName = $('#m-CustomName').val().trim();
+            if (!customName) {
+                showModalError('#header-modal-error', '請輸入自定義證照名稱');
+                return;
+            }
+            remark = customName;
         }
     }
 
@@ -413,7 +442,7 @@ function showModalError(selector, msg) {
 }
 
 async function populateAdvancedDropdowns() {
-    await Promise.all([ensureEmployeesLoaded(), ensureMinorLicensesLoaded()]);
+    await Promise.all([ensureEmployeesLoaded(), ensureAllLicensesLoaded()]);
 
     // 部門：自員工資料去重後排序
     const depts = [...new Set((cachedEmployees || []).map(e => e.Department).filter(Boolean))].sort();
@@ -479,7 +508,10 @@ $(function () {
     $('#header-form').on('submit', submitHeader);
     $('#detail-form').on('submit', submitDetail);
     $('#m-EmployeeId').on('input change', updateEmployeeHint);
-    $('#m-LicenseType').on('change', updateRequiredHoursOnLicenseChange);
+    $('#m-LicenseType').on('change', () => {
+        updateCustomNameVisibility();
+        updateRequiredHoursOnLicenseChange();
+    });
 
     loadHeaders();
 });
