@@ -205,6 +205,7 @@ async function openHeaderModal(mode, item) {
     const cats = cachedAllLicenses.filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
     cats.forEach(cat => {
         const $grp = $('<optgroup>').attr('label', `${cat.LicenseType} ${cat.Description}`);
+        $('<option></option>').val(cat.LicenseType).text(`${cat.LicenseType} ${cat.Description}`).appendTo($grp);
         cachedAllLicenses.filter(x => x.Category === cat.LicenseType).forEach(x => {
             $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($grp);
         });
