@@ -492,7 +492,7 @@ $(function () {
         '#btn-add':           '新增',
         '#btn-edit':          '修改',
         '#btn-delete':        '刪除',
-        '#btn-export':        '儲存',
+        '#btn-export':        '列印',
         '#btn-detail-add':    '新增',
         '#btn-detail-edit':   '修改',
         '#btn-detail-delete': '刪除'

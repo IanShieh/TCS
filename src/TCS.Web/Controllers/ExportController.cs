@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TCS.Core.DTOs.Requests;
 using TCS.Core.Interfaces;
+using TCS.Web.Filters;
 
 namespace TCS.Web.Controllers;
 
@@ -20,6 +21,7 @@ public class ExportController : ControllerBase
     }
 
     [HttpGet("training-headers")]
+    [RequireAction("列印")]
     public async Task<IActionResult> ExportHeaders(
         [FromQuery] TrainingSearchQuery? query = null,
         CancellationToken ct = default)
