@@ -198,6 +198,7 @@ async function ensureAllCategoriesLoaded() {
 }
 
 function suggestNextLicenseType(selectedCategory) {
+    if (!cachedAllLicensesFull) return '';
     if (selectedCategory === '__MAJOR__') {
         const majors = cachedAllLicensesFull
             .filter(x => INTEGER_REGEX.test(x.LicenseType))
