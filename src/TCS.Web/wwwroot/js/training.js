@@ -416,7 +416,7 @@ async function deleteSelectedDetail() {
 }
 
 // ---------- Excel 匯出 ----------
-function exportExcel() {
+async function exportExcel() {
     const advanced = buildAdvancedQuery();
     const params = new URLSearchParams();
     if (advanced) {
@@ -428,7 +428,18 @@ function exportExcel() {
         const search = $('#search').val();
         if (search) params.set('query.Search', search);
     }
-    window.location.href = `${BASE}/api/export/training-headers?${params}`;
+    const res = await fetch(`${BASE}/api/export/training-headers?${params}`);
+    if (!res.ok) { Toast.error(await readErrorMessage(res, '匯出失敗')); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.download = `training_export_${today}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // ---------- 共用 ----------
