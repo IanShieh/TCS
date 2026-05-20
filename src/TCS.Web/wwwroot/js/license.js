@@ -164,7 +164,8 @@ async function openLicenseModal(mode, item) {
     } else {
         $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
         $('#m-Description').val(item.Description ?? '');
-        $('#m-Category').val(item.Category ?? '');
+        const editIsMajor = isLicenseTypeMajor(item.LicenseType);
+        $('#m-Category').val(editIsMajor ? '__MAJOR__' : (item.Category ?? ''));
         $('#m-Hours').val(item.Hours ?? '');
         $('#m-Years').val(item.Years ?? '');
     }
@@ -233,14 +234,17 @@ function isLicenseTypeMinor(value) {
 
 function syncCategoryVisibility() {
     const v = $('#m-LicenseType').val();
-    const categoryIsMajor = $('#m-Category').val() === '__MAJOR__';
-    if (isLicenseTypeMajor(v) || categoryIsMajor) {
-        $('#m-Category-wrap').hide();
-        $('#m-Category').val('__MAJOR__');
+    const categoryVal = $('#m-Category').val();
+    const categoryIsMajor = categoryVal === '__MAJOR__';
+    const ltIsMajor = isLicenseTypeMajor(v);
+
+    // Category wrap is always visible — it is the primary input field
+    $('#m-Category-wrap').show();
+
+    if (ltIsMajor || categoryIsMajor) {
         $('#m-Hours-required, #m-Years-required').addClass('d-none');
         $('#m-Hours, #m-Years').prop('required', false);
     } else {
-        $('#m-Category-wrap').show();
         const minor = isLicenseTypeMinor(v);
         $('#m-Hours-required, #m-Years-required').toggleClass('d-none', !minor);
         $('#m-Hours, #m-Years').prop('required', minor);

@@ -114,6 +114,11 @@
                 </div>
                 <div class="modal-body">
                     <div id="license-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3" id="m-Category-wrap">
+                        <label class="form-label">對應大類 <span class="text-danger" id="m-Category-required">*</span></label>
+                        <select id="m-Category" class="form-select"></select>
+                        <div class="form-text">選「大類」可建立新的整數大類；選現有大類可新增小類</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">證照類別 <span class="text-danger">*</span></label>
                         <input type="text" id="m-LicenseType" class="form-control" required maxlength="10" />
@@ -122,10 +127,6 @@
                     <div class="mb-3">
                         <label class="form-label">說明 <span class="text-danger">*</span></label>
                         <input type="text" id="m-Description" class="form-control" required maxlength="70" />
-                    </div>
-                    <div class="mb-3" id="m-Category-wrap">
-                        <label class="form-label">對應大類 <span class="text-danger" id="m-Category-required">*</span></label>
-                        <select id="m-Category" class="form-select"></select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">所需時數 <span class="text-danger d-none" id="m-Hours-required">*</span></label>
