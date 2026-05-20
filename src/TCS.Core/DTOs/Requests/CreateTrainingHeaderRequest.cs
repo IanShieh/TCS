@@ -4,4 +4,5 @@ namespace TCS.Core.DTOs.Requests;
 public record CreateTrainingHeaderRequest(
     string EmployeeId,
     string LicenseType,
-    string? Remark);
+    string? Remark,
+    string? Plant);

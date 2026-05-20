@@ -97,7 +97,8 @@ public class TrainingService : ITrainingService
             EmployeeId = req.EmployeeId,
             LicenseType = req.LicenseType,
             RequiredHours = license.Hours ?? 0,
-            Remark = req.Remark
+            Remark = req.Remark,
+            Plant = req.Plant
         };
         await _repo.AddHeaderAsync(header, ct);
 
@@ -110,6 +111,7 @@ public class TrainingService : ITrainingService
         var header = await _repo.GetHeaderAsync(req.EmployeeId, req.LicenseType, includeDetails: true, ct)
             ?? throw new KeyNotFoundException($"TrainingHeader ({req.EmployeeId},{req.LicenseType}) not found.");
         header.Remark = req.Remark;
+        header.Plant = req.Plant;
         await _repo.UpdateHeaderAsync(header, ct);
         var emp = await _empRepo.GetByIdAsync(req.EmployeeId, ct);
         return header.ToDto(emp, header.LicenseMasterNav, header.Details.ToList(), DateOnly.FromDateTime(DateTime.Today));

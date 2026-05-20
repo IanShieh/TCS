@@ -12,6 +12,7 @@ public class TrainingHeader : IAuditableEntity
     public string LicenseType { get; set; } = null!;
     public int RequiredHours { get; set; }          // §8-1: 系統帶入，建立後唯讀
     public string? Remark { get; set; }
+    public string? Plant { get; set; }
     public string? Creator { get; set; }
     public string? CreateDate { get; set; }
     public string? Modifier { get; set; }

@@ -12,6 +12,7 @@ public record TrainingHeaderDto(
     string? Description,
     int RequiredHours,
     string? Remark,
+    string? Plant,
     DateOnly? LatestAcquireDate,
     DateOnly? LatestRetrainDate,
     DateOnly? NextReviewDate,

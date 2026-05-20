@@ -94,6 +94,7 @@ public static class MappingExtensions
             licenseMaster?.Description,
             header.RequiredHours,
             header.Remark,
+            header.Plant,
             latestAcquireDate,
             latestRetrainDate,
             nextReviewDate,
