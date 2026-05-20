@@ -11,6 +11,7 @@ const pageSize = 20;
 
 let cachedLicenses = [];        // 當前頁/篩選結果
 let cachedAllCategories = null; // 所有大類，僅初次載入時取
+let cachedAllLicensesFull = null; // 全部證照（含小類），T1 推算序號用
 let cachedPlants = [];
 let selectedLicense = null;        // 完整列物件
 let selectedRequirement = null;
@@ -147,20 +148,21 @@ async function loadRequirements(licenseType) {
 }
 
 // ---------- License Modal ----------
-function openLicenseModal(mode, item) {
+async function openLicenseModal(mode, item) {
     $('#license-modal-error').addClass('d-none').text('');
     $('#license-modal-title').text(mode === 'create' ? '新增證照' : '修改證照');
 
+    await ensureAllCategoriesLoaded();
     populateCategoryOptions();
 
     if (mode === 'create') {
-        $('#m-LicenseType').val('').prop('readonly', false);
+        $('#m-LicenseType').val('').prop('disabled', false);
         $('#m-Description').val('');
         $('#m-Category').val('');
         $('#m-Hours').val('');
         $('#m-Years').val('');
     } else {
-        $('#m-LicenseType').val(item.LicenseType).prop('readonly', true);
+        $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
         $('#m-Description').val(item.Description ?? '');
         $('#m-Category').val(item.Category ?? '');
         $('#m-Hours').val(item.Hours ?? '');
@@ -182,17 +184,38 @@ function populateCategoryOptions() {
 
 async function ensureAllCategoriesLoaded() {
     if (cachedAllCategories !== null) return;
-    // 一次撈全部，僅供下拉用；不影響當前篩選
     const res = await fetch(`${API}?page=1&pageSize=9999`);
-    if (!res.ok) { cachedAllCategories = []; return; }
+    if (!res.ok) { cachedAllCategories = []; cachedAllLicensesFull = []; return; }
     const data = await res.json();
-    cachedAllCategories = (data.Items || []).filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
+    cachedAllLicensesFull = data.Items || [];
+    cachedAllCategories = cachedAllLicensesFull.filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
 
     const $sel = $('#adv-Category').empty();
     $('<option></option>').val('').text('（不限）').appendTo($sel);
     cachedAllCategories.forEach(x => {
         $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
     });
+}
+
+function suggestNextLicenseType(selectedCategory) {
+    if (selectedCategory === '__MAJOR__') {
+        const majors = cachedAllLicensesFull
+            .filter(x => INTEGER_REGEX.test(x.LicenseType))
+            .map(x => parseInt(x.LicenseType, 10));
+        return String(majors.length ? Math.max(...majors) + 1 : 1);
+    }
+    if (selectedCategory && INTEGER_REGEX.test(selectedCategory)) {
+        const subs = cachedAllLicensesFull
+            .filter(x => x.Category === selectedCategory)
+            .map(x => {
+                const parts = x.LicenseType.split('.');
+                return parseInt(parts[parts.length - 1], 10);
+            })
+            .filter(n => !isNaN(n));
+        const nextIdx = subs.length ? Math.max(...subs) + 1 : 1;
+        return `${selectedCategory}.${nextIdx}`;
+    }
+    return '';
 }
 
 function clearAdvancedFields() {
@@ -404,6 +427,16 @@ $(function () {
     $('#license-form').on('submit', submitLicense);
     $('#req-form').on('submit', submitRequirement);
     $('#m-LicenseType').on('input', syncCategoryVisibility);
+    $('#m-Category').on('change', function () {
+        const val = $(this).val();
+        const suggested = suggestNextLicenseType(val);
+        if (suggested) {
+            $('#m-LicenseType').val(suggested).prop('disabled', true);
+        } else {
+            $('#m-LicenseType').val('').prop('disabled', false);
+        }
+        syncCategoryVisibility();
+    });
 
     loadLicenses();
 });
