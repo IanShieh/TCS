@@ -157,15 +157,15 @@ async function openLicenseModal(mode, item) {
 
     if (mode === 'create') {
         $('#m-LicenseType').val('').prop('disabled', false);
+        $('#m-Category').val('').prop('disabled', false);
         $('#m-Description').val('');
-        $('#m-Category').val('');
         $('#m-Hours').val('');
         $('#m-Years').val('');
     } else {
         $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
         $('#m-Description').val(item.Description ?? '');
         const editIsMajor = isLicenseTypeMajor(item.LicenseType);
-        $('#m-Category').val(editIsMajor ? '__MAJOR__' : (item.Category ?? ''));
+        $('#m-Category').val(editIsMajor ? '__MAJOR__' : (item.Category ?? '')).prop('disabled', true);
         $('#m-Hours').val(item.Hours ?? '');
         $('#m-Years').val(item.Years ?? '');
     }
