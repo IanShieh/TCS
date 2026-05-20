@@ -174,11 +174,10 @@ function openLicenseModal(mode, item) {
 function populateCategoryOptions() {
     const $sel = $('#m-Category').empty();
     $('<option></option>').val('').text('-- 請選擇 --').appendTo($sel);
-    cachedLicenses
-        .filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType))
-        .forEach(x => {
-            $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
-        });
+    $('<option></option>').val('__MAJOR__').text('大類').appendTo($sel);
+    (cachedAllCategories || []).forEach(x => {
+        $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
+    });
 }
 
 async function ensureAllCategoriesLoaded() {
@@ -210,9 +209,10 @@ function isLicenseTypeMinor(value) {
 
 function syncCategoryVisibility() {
     const v = $('#m-LicenseType').val();
-    if (isLicenseTypeMajor(v)) {
+    const categoryIsMajor = $('#m-Category').val() === '__MAJOR__';
+    if (isLicenseTypeMajor(v) || categoryIsMajor) {
         $('#m-Category-wrap').hide();
-        $('#m-Category').val('');
+        $('#m-Category').val('__MAJOR__');
         $('#m-Hours-required, #m-Years-required').addClass('d-none');
         $('#m-Hours, #m-Years').prop('required', false);
     } else {
@@ -234,10 +234,11 @@ async function submitLicense(e) {
         return;
     }
 
+    const catVal = $('#m-Category').val();
     const body = {
         LicenseType: lt,
         Description: $('#m-Description').val().trim(),
-        Category: isMajor ? null : ($('#m-Category').val().trim() || null),
+        Category: (isMajor || catVal === '__MAJOR__') ? null : (catVal.trim() || null),
         Hours: $('#m-Hours').val() !== '' ? parseInt($('#m-Hours').val(), 10) : null,
         Years: $('#m-Years').val() !== '' ? parseInt($('#m-Years').val(), 10) : null
     };
