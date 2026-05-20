@@ -3,6 +3,7 @@ const HEADER_API = BASE + '/api/training-headers';
 const DETAIL_API = BASE + '/api/training-details';
 const EMPLOYEE_API = BASE + '/api/employees';
 const LICENSE_API = BASE + '/api/licenses';
+const LICENSE_PLANT_API = (lt) => `${BASE}/api/licenses/${encodeURIComponent(lt)}/plants`;
 
 const INTEGER_REGEX = /^\d+$/;
 
@@ -193,6 +194,19 @@ async function ensureAllLicensesLoaded() {
     cachedMinorLicenses = cachedAllLicenses.filter(x => !x.IsCategory && !INTEGER_REGEX.test(x.LicenseType));
 }
 
+async function loadPlantOptions(licenseType) {
+    const $sel = $('#m-Plant').empty();
+    $('<option></option>').val('').text('（不選廠別）').appendTo($sel);
+    if (!licenseType) return;
+    const res = await fetch(LICENSE_PLANT_API(licenseType));
+    if (!res.ok) return;
+    const items = await res.json();
+    items.forEach(p => {
+        const label = p.PlantName ? `${p.Plant} ${p.PlantName}` : p.Plant;
+        $('<option></option>').val(p.Plant).text(label).appendTo($sel);
+    });
+}
+
 // ---------- Header Modal ----------
 async function openHeaderModal(mode, item) {
     $('#header-modal-error').addClass('d-none').text('');
@@ -218,12 +232,15 @@ async function openHeaderModal(mode, item) {
         $('#m-LicenseType').val('').prop('disabled', false);
         $('#m-RequiredHours').val('');
         $('#m-Remark').val('');
+        await loadPlantOptions('');
         updateEmployeeHint();
     } else {
         $('#m-EmployeeId').val(item.EmployeeId).prop('readonly', true);
         $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
         $('#m-RequiredHours').val(item.RequiredHours ?? '');
         $('#m-Remark').val(item.Remark ?? '');
+        await loadPlantOptions(item.LicenseType);
+        $('#m-Plant').val(item.Plant ?? '');
         updateEmployeeHint();
     }
     $('#header-form').data('mode', mode);
@@ -282,7 +299,7 @@ async function submitHeader(e) {
         }
     }
 
-    const body = { EmployeeId: employeeId, LicenseType: licenseType, Remark: remark };
+    const body = { EmployeeId: employeeId, LicenseType: licenseType, Remark: remark, Plant: $('#m-Plant').val() || null };
     const url = mode === 'create'
         ? HEADER_API
         : `${HEADER_API}/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`;
@@ -509,9 +526,10 @@ $(function () {
     $('#header-form').on('submit', submitHeader);
     $('#detail-form').on('submit', submitDetail);
     $('#m-EmployeeId').on('input change', updateEmployeeHint);
-    $('#m-LicenseType').on('change', () => {
+    $('#m-LicenseType').on('change', async function () {
         updateCustomNameVisibility();
         updateRequiredHoursOnLicenseChange();
+        await loadPlantOptions($(this).val());
     });
 
     loadHeaders();
