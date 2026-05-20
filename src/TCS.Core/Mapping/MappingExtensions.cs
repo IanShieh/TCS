@@ -76,14 +76,14 @@ public static class MappingExtensions
         decimal remainingHours = Math.Max(0m, header.RequiredHours - accumulatedHours);
 
         OverallStatus status;
-        if (!latestAcquireDate.HasValue)
-            status = OverallStatus.未取得;
-        else if (currentPeriodDetails.Any(d => d.IsExpired))
+        if (nextReviewDate.HasValue && nextReviewDate.Value < today)
             status = OverallStatus.已過期;
-        else if (accumulatedHours >= header.RequiredHours)
-            status = OverallStatus.通過;
+        else if (remainingHours == 0)
+            status = OverallStatus.回訓完成;
+        else if (nextReviewDate.HasValue && nextReviewDate.Value <= today.AddYears(1))
+            status = OverallStatus.待回訓;
         else
-            status = OverallStatus.進行中;
+            status = OverallStatus.無;
 
         return new TrainingHeaderDto(
             header.EmployeeId,

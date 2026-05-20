@@ -1,10 +1,10 @@
 namespace TCS.Core.DTOs;
 
-/// <summary>證照整體狀態（§4-6）</summary>
+/// <summary>證照整體狀態</summary>
 public enum OverallStatus
 {
-    未取得 = 0,
-    通過 = 1,
-    進行中 = 2,
-    已過期 = 3
+    回訓完成 = 0,
+    待回訓 = 1,
+    已過期 = 2,
+    無 = 3      // 未達時數 > 0 且下次回訓未在一年內（或無回訓日）
 }

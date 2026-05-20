@@ -13,9 +13,8 @@ public class ExcelExportService : IExcelExportService
 
         var headers = new[]
         {
-            "員工代號", "姓名", "部門", "證照類別", "證照說明",
-            "所需時數", "備註", "最後取得日", "最後複訓日",
-            "下次複審日", "累計時數", "剩餘時數", "狀態"
+            "員編", "姓名", "部門", "到職日", "證照類別", "證照名稱",
+            "應訓時數", "最新回訓日", "未達時數", "下次回訓", "廠別", "備註", "狀態"
         };
 
         for (int i = 0; i < headers.Length; i++)
@@ -27,16 +26,16 @@ public class ExcelExportService : IExcelExportService
             ws.Cell(row, 1).Value = r.EmployeeId;
             ws.Cell(row, 2).Value = r.EmployeeName ?? "";
             ws.Cell(row, 3).Value = r.Department ?? "";
-            ws.Cell(row, 4).Value = r.LicenseType;
-            ws.Cell(row, 5).Value = r.Description ?? "";
-            ws.Cell(row, 6).Value = r.RequiredHours;
-            ws.Cell(row, 7).Value = r.Remark ?? "";
-            ws.Cell(row, 8).Value = r.LatestAcquireDate?.ToString("yyyy-MM-dd") ?? "";
-            ws.Cell(row, 9).Value = r.LatestRetrainDate?.ToString("yyyy-MM-dd") ?? "";
+            ws.Cell(row, 4).Value = FormatHireDate(r.HireDate);
+            ws.Cell(row, 5).Value = r.LicenseType;
+            ws.Cell(row, 6).Value = r.Description ?? "";
+            ws.Cell(row, 7).Value = r.RequiredHours;
+            ws.Cell(row, 8).Value = r.LatestRetrainDate?.ToString("yyyy-MM-dd") ?? "";
+            ws.Cell(row, 9).Value = (double)r.RemainingHours;
             ws.Cell(row, 10).Value = r.NextReviewDate?.ToString("yyyy-MM-dd") ?? "";
-            ws.Cell(row, 11).Value = (double)r.AccumulatedHours;
-            ws.Cell(row, 12).Value = (double)r.RemainingHours;
-            ws.Cell(row, 13).Value = r.OverallStatus.ToString();
+            ws.Cell(row, 11).Value = r.Plant ?? "";
+            ws.Cell(row, 12).Value = r.Remark ?? "";
+            ws.Cell(row, 13).Value = r.OverallStatus == OverallStatus.無 ? "" : r.OverallStatus.ToString();
             row++;
         }
 
@@ -46,4 +45,9 @@ public class ExcelExportService : IExcelExportService
         wb.SaveAs(ms);
         return ms.ToArray();
     }
+
+    private static string FormatHireDate(string? s) =>
+        s?.Length == 8 && s.All(char.IsDigit)
+            ? $"{s[..4]}-{s[4..6]}-{s[6..8]}"
+            : s ?? "";
 }
