@@ -8,7 +8,7 @@ public class LicensePlantRequirementConfiguration : IEntityTypeConfiguration<Lic
 {
     public void Configure(EntityTypeBuilder<LicensePlantRequirement> builder)
     {
-        builder.ToTable("TRNM02");
+        builder.ToTable("TCSMB");
         builder.HasKey(e => new { e.LicenseType, e.Plant });
         builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.Plant).HasMaxLength(10).IsFixedLength(true).IsUnicode(false);

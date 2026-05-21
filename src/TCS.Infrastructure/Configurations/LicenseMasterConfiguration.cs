@@ -8,7 +8,7 @@ public class LicenseMasterConfiguration : IEntityTypeConfiguration<LicenseMaster
 {
     public void Configure(EntityTypeBuilder<LicenseMaster> builder)
     {
-        builder.ToTable("TRNM01");
+        builder.ToTable("TCSMA");
         builder.HasKey(e => e.LicenseType);
         builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.Description).HasMaxLength(100);

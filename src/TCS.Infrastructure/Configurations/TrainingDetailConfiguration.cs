@@ -8,7 +8,7 @@ public class TrainingDetailConfiguration : IEntityTypeConfiguration<TrainingDeta
 {
     public void Configure(EntityTypeBuilder<TrainingDetail> builder)
     {
-        builder.ToTable("TRNF02");
+        builder.ToTable("TCSTB");
         builder.HasKey(e => new { e.EmployeeId, e.LicenseType, e.TrainingDate });
         builder.Property(e => e.EmployeeId).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
