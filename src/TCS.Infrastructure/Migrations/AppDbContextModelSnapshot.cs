@@ -49,13 +49,6 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("MV002");
 
-                    b.Property<string>("Plant")
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("char(10)")
-                        .HasColumnName("MV005")
-                        .IsFixedLength();
-
                     b.ToTable((string)null);
 
                     b.ToView("CMSMV", (string)null);
