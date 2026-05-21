@@ -12,8 +12,8 @@ public class TrainingHeaderConfiguration : IEntityTypeConfiguration<TrainingHead
         builder.HasKey(e => new { e.EmployeeId, e.LicenseType });
         builder.Property(e => e.EmployeeId).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.Hours);
-        builder.Property(e => e.Years).IsRequired(false);
+        builder.Property(e => e.Hours).HasColumnType("int");
+        builder.Property(e => e.Years).HasColumnType("int").IsRequired(false);
         builder.Property(e => e.Remark).HasMaxLength(200);
         builder.Property(e => e.Plant).HasMaxLength(6).IsFixedLength(true).IsUnicode(false).IsRequired(false);
         builder.Property(e => e.Creator).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);

@@ -34,6 +34,7 @@ public class TrainingServiceTests
         var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
             new CreateTrainingHeaderRequest("E001", "1.1", null, null));
         Assert.Equal(24, result.Hours);
+        Assert.Equal(2, result.Years);
     }
 
     [Fact]
