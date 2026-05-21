@@ -5,6 +5,7 @@ obj/
 *.suo
 .vs/
 *.swp
+appsettings.*.json
 
 ## NuGet
 packages/

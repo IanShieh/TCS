@@ -24,7 +24,7 @@ public static class MappingExtensions
     public static TrainingDetailDto ToDto(this TrainingDetail d) =>
         new(d.EmployeeId, d.LicenseType,
             DateOnly.FromDateTime(d.TrainingDate),
-            d.TrainingType, d.Hours, d.IsExpired);
+            d.TrainingType, d.Hours);
 
     // ── TrainingHeader ─────────────────────────────────────────────────────
 

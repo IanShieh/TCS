@@ -34,9 +34,6 @@ builder.Services.AddScoped<IPlantRepository, PlantRepository>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddScoped<ITrainingService, TrainingService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
-builder.Services.AddScoped<IExpiryCalculator, ExpiryCalculator>();
-builder.Services.AddSingleton<IAppTimeProvider, SystemTimeProvider>();
-builder.Services.AddHostedService<ExpiryScanService>();
 
 // Validators
 builder.Services.AddValidatorsFromAssembly(typeof(CreateLicenseMasterValidator).Assembly);

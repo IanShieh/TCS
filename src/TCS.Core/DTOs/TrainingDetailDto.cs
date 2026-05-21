@@ -6,5 +6,4 @@ public record TrainingDetailDto(
     string LicenseType,
     DateOnly TrainingDate,
     int TrainingType,
-    decimal Hours,
-    bool IsExpired);
+    decimal Hours);

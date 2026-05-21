@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TCS.Core\TCS.Core.csproj" />
+    <ProjectReference Include="..\..\ERP.Auth.Common\ERP.Auth.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

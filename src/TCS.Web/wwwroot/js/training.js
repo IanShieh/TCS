@@ -120,7 +120,7 @@ function clearHeaderSelection() {
     $('#detail-header-label').text('');
     const $tbody = $('#detail-table tbody').empty();
     $tbody.append($('<tr></tr>').append(
-        $('<td colspan="4" class="text-center text-muted"></td>').text('請先選擇上方受訓單頭')
+        $('<td colspan="3" class="text-center text-muted"></td>').text('請先選擇上方受訓單頭')
     ));
 }
 
@@ -134,14 +134,14 @@ async function loadDetails(employeeId, licenseType) {
     const $tbody = $('#detail-table tbody').empty();
     if (!res.ok) {
         $tbody.append($('<tr></tr>').append(
-            $('<td colspan="4" class="text-center text-danger"></td>').text('載入失敗')
+            $('<td colspan="3" class="text-center text-danger"></td>').text('載入失敗')
         ));
         return;
     }
     const items = await res.json();
     if (!items.length) {
         $tbody.append($('<tr></tr>').append(
-            $('<td colspan="4" class="text-center text-muted"></td>').text('（無資料）')
+            $('<td colspan="3" class="text-center text-muted"></td>').text('（無資料）')
         ));
         return;
     }
@@ -150,7 +150,6 @@ async function loadDetails(employeeId, licenseType) {
         $('<td></td>').text(d.TrainingDate ?? '').appendTo($tr);
         $('<td></td>').text(trainingTypeLabel(d.TrainingType)).appendTo($tr);
         $('<td></td>').text(d.Hours ?? '').appendTo($tr);
-        $('<td></td>').text(d.IsExpired ? '是' : '否').appendTo($tr);
         $tr.on('click', () => {
             $('#detail-table tbody tr.row-selected').removeClass('row-selected');
             $tr.addClass('row-selected');
@@ -394,7 +393,7 @@ async function submitDetail(e) {
         detailModal.hide();
         Toast.success(mode === 'create' ? '受訓紀錄已新增' : '受訓紀錄已更新');
         await loadDetails(selectedHeader.EmployeeId, selectedHeader.LicenseType);
-        // 單身改變後單頭衍生欄位（累計、未達時數、IsExpired）也會變，重新撈當前頁
+        // 單身改變後單頭衍生欄位（累計、未達時數）也會變，重新撈當前頁
         await loadHeaders();
         return;
     }

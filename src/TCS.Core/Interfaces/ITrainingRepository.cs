@@ -16,7 +16,4 @@ public interface ITrainingRepository
     Task AddDetailAsync(TrainingDetail entity, CancellationToken ct = default);
     Task UpdateDetailAsync(TrainingDetail entity, CancellationToken ct = default);
     Task DeleteDetailAsync(string employeeId, string licenseType, DateTime trainingDate, CancellationToken ct = default);
-
-    /// <summary>For ExpiryScanService: fetch all headers with details and license info.</summary>
-    Task<List<TrainingHeader>> GetAllWithDetailsAndLicenseAsync(CancellationToken ct = default);
 }

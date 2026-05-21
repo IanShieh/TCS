@@ -1,0 +1,98 @@
+{
+  "description": "Training License Management Database Schema",
+  "tables": [
+    {
+      "table": "TRNM01",
+      "logical_name": "LicenseMaster",
+      "description": "證照主檔：定義所有證照類型及其基本屬性",
+      "primary_key": ["MA001"],
+      "columns": [
+        { "name": "MA001", "logical": "LicenseType",  "type": "varchar(10)",   "nullable": false, "pk": true,  "fk": null, "description": "證照類型代碼" },
+        { "name": "MA002", "logical": "Description",  "type": "nvarchar(100)", "nullable": false, "pk": false, "fk": null, "description": "證照說明" },
+        { "name": "MA003", "logical": "Category",     "type": "varchar(10)",   "nullable": true,  "pk": false, "fk": null, "description": "分類代碼；null 表示本身即為分類" },
+        { "name": "MA004", "logical": "Hours",        "type": "int",           "nullable": true,  "pk": false, "fk": null, "description": "所需訓練時數" },
+        { "name": "MA005", "logical": "Years",        "type": "int",           "nullable": true,  "pk": false, "fk": null, "description": "有效年限" },
+        { "name": "COMPANY",     "logical": "COMPANY",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "公司代碼（系統欄位）" },
+        { "name": "CREATOR",     "logical": "CREATOR",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "建立者（系統欄位）" },
+        { "name": "USR_GROUP",   "logical": "USR_GROUP",   "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "使用者群組（系統欄位）" },
+        { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
+        { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
+        { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+      ]
+    },
+    {
+      "table": "TRNM02",
+      "logical_name": "LicensePlantRequirement",
+      "description": "廠別需求：各廠別對每種證照的持證人數需求",
+      "primary_key": ["MB001", "MB002"],
+      "foreign_keys": [
+        { "columns": ["MB001"], "references_table": "TRNM01", "references_columns": ["MA001"], "on_delete": "CASCADE" }
+      ],
+      "columns": [
+        { "name": "MB001", "logical": "LicenseType",   "type": "varchar(10)",  "nullable": false, "pk": true,  "fk": "TRNM01.MA001", "description": "證照類型代碼，FK→TRNM01（cascade delete）" },
+        { "name": "MB002", "logical": "Plant",         "type": "char(10)",     "nullable": false, "pk": true,  "fk": null,          "description": "廠別代碼" },
+        { "name": "MB003", "logical": "RequiredCount", "type": "int",          "nullable": false, "pk": false, "fk": null,          "description": "該廠別需求持證人數" },
+        { "name": "COMPANY",     "logical": "COMPANY",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "公司代碼（系統欄位）" },
+        { "name": "CREATOR",     "logical": "CREATOR",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "建立者（系統欄位）" },
+        { "name": "USR_GROUP",   "logical": "USR_GROUP",   "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "使用者群組（系統欄位）" },
+        { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
+        { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
+        { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+      ]
+    },
+    {
+      "table": "TRNF01",
+      "logical_name": "TrainingHeader",
+      "description": "訓練主檔：記錄員工與特定證照的訓練主記錄",
+      "primary_key": ["TA001", "TA002"],
+      "foreign_keys": [
+        { "columns": ["TA002"], "references_table": "TRNM01", "references_columns": ["MA001"], "on_delete": "NO ACTION" }
+      ],
+      "notes": "TA001 (EmployeeId) 無資料庫層 FK，由 Service 層驗證",
+      "columns": [
+        { "name": "TA001", "logical": "EmployeeId",    "type": "varchar(10)",   "nullable": false, "pk": true,  "fk": null,          "description": "員工代碼（無 DB FK，由 Service 層驗證）" },
+        { "name": "TA002", "logical": "LicenseType",   "type": "varchar(10)",   "nullable": false, "pk": true,  "fk": "TRNM01.MA001", "description": "證照類型代碼，FK→TRNM01（restrict delete）" },
+        { "name": "TA003", "logical": "Plant",         "type": "char(6)",       "nullable": true,  "pk": false, "fk": null,          "description": "廠別（migration 20260520 新增）" },
+        { "name": "TA004", "logical": "RequiredHours", "type": "int",           "nullable": false, "pk": false, "fk": null,          "description": "建立時從 TRNM01.MA004 帶入，唯讀" },
+        { "name": "TA005", "logical": "Remark",        "type": "nvarchar(200)", "nullable": true,  "pk": false, "fk": null,          "description": "備註" },
+        { "name": "COMPANY",     "logical": "COMPANY",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "公司代碼（系統欄位）" },
+        { "name": "CREATOR",     "logical": "CREATOR",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "建立者（系統欄位）" },
+        { "name": "USR_GROUP",   "logical": "USR_GROUP",   "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "使用者群組（系統欄位）" },
+        { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
+        { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
+        { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+      ]
+    },
+    {
+      "table": "TRNF02",
+      "logical_name": "TrainingDetail",
+      "description": "訓練明細：每次實際訓練紀錄（取得證照或回訓）",
+      "primary_key": ["TB001", "TB002", "TB003"],
+      "foreign_keys": [
+        { "columns": ["TB001", "TB002"], "references_table": "TRNF01", "references_columns": ["TA001", "TA002"], "on_delete": "CASCADE" }
+      ],
+      "columns": [
+        { "name": "TB001", "logical": "EmployeeId",   "type": "varchar(10)",  "nullable": false, "pk": true,  "fk": "TRNF01.TA001", "description": "員工代碼，複合 FK→TRNF01（cascade delete）" },
+        { "name": "TB002", "logical": "LicenseType",  "type": "varchar(10)",  "nullable": false, "pk": true,  "fk": "TRNF01.TA002", "description": "證照類型代碼，複合 FK→TRNF01（cascade delete）" },
+        { "name": "TB003", "logical": "TrainingDate", "type": "date",         "nullable": false, "pk": true,  "fk": null,          "description": "訓練日期" },
+        { "name": "TB004", "logical": "TrainingType", "type": "int",          "nullable": false, "pk": false, "fk": null,          "description": "訓練類型：1=取得證照，2=回訓" },
+        { "name": "TB005", "logical": "Hours",        "type": "decimal(6,1)", "nullable": false, "pk": false, "fk": null,          "description": "訓練時數" },
+        { "name": "COMPANY",     "logical": "COMPANY",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "公司代碼（系統欄位）" },
+        { "name": "CREATOR",     "logical": "CREATOR",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "建立者（系統欄位）" },
+        { "name": "USR_GROUP",   "logical": "USR_GROUP",   "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "使用者群組（系統欄位）" },
+        { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
+        { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
+        { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+      ]
+    }
+  ],
+  "relationships": [
+    { "from": "TRNM02.MB001", "to": "TRNM01.MA001", "on_delete": "CASCADE" },
+    { "from": "TRNF01.TA002", "to": "TRNM01.MA001", "on_delete": "NO ACTION (restrict)" },
+    { "from": "TRNF02.(TB001,TB002)", "to": "TRNF01.(TA001,TA002)", "on_delete": "CASCADE" }
+  ]
+}

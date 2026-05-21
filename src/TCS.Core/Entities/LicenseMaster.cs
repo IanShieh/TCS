@@ -14,6 +14,8 @@ public class LicenseMaster : IAuditableEntity
     public string? Modifier { get; set; }
     public string? ModiDate { get; set; }
     public decimal? Flag { get; set; }
+    public string? Company { get; set; }
+    public string? UsrGroup { get; set; }
 
     public ICollection<LicensePlantRequirement> PlantRequirements { get; set; } = new List<LicensePlantRequirement>();
     public ICollection<TrainingHeader> TrainingHeaders { get; set; } = new List<TrainingHeader>();

@@ -78,9 +78,4 @@ public class TrainingRepository : ITrainingRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public Task<List<TrainingHeader>> GetAllWithDetailsAndLicenseAsync(CancellationToken ct = default) =>
-        _db.TrainingHeaders
-            .Include(h => h.Details)
-            .Include(h => h.LicenseMasterNav)
-            .ToListAsync(ct);
 }

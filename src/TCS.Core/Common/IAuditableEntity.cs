@@ -8,4 +8,6 @@ public interface IAuditableEntity
     string? Modifier { get; set; }
     string? ModiDate { get; set; }
     decimal? Flag { get; set; }
+    string? Company { get; set; }
+    string? UsrGroup { get; set; }
 }

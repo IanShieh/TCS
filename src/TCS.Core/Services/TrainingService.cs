@@ -13,18 +13,15 @@ public class TrainingService : ITrainingService
     private readonly ITrainingRepository _repo;
     private readonly ILicenseRepository _licenseRepo;
     private readonly IEmployeeRepository _empRepo;
-    private readonly IExpiryCalculator _expiry;
 
     public TrainingService(
         ITrainingRepository repo,
         ILicenseRepository licenseRepo,
-        IEmployeeRepository empRepo,
-        IExpiryCalculator expiry)
+        IEmployeeRepository empRepo)
     {
         _repo = repo;
         _licenseRepo = licenseRepo;
         _empRepo = empRepo;
-        _expiry = expiry;
     }
 
     public async Task<PagedResult<TrainingHeaderDto>> GetHeadersAsync(
@@ -146,8 +143,7 @@ public class TrainingService : ITrainingService
             LicenseType = req.LicenseType,
             TrainingDate = trainingDateTime,
             TrainingType = req.TrainingType,
-            Hours = req.Hours,
-            IsExpired = false
+            Hours = req.Hours
         };
         await _repo.AddDetailAsync(detail, ct);
         return detail.ToDto();

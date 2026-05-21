@@ -75,6 +75,12 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnType("varchar(20)")
                         .IsFixedLength(false);
 
+                    b.Property<string>("Company")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("COMPANY");
+
                     b.Property<string>("CreateDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
@@ -110,6 +116,12 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnType("varchar(20)")
                         .IsFixedLength(false);
 
+                    b.Property<string>("UsrGroup")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("USR_GROUP");
+
                     b.Property<int?>("Years")
                         .HasColumnType("int");
 
@@ -131,6 +143,12 @@ namespace TCS.Infrastructure.Migrations
                         .IsUnicode(false)
                         .HasColumnType("char(10)")
                         .IsFixedLength();
+
+                    b.Property<string>("Company")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("COMPANY");
 
                     b.Property<string>("CreateDate")
                         .HasMaxLength(8)
@@ -161,6 +179,12 @@ namespace TCS.Infrastructure.Migrations
 
                     b.Property<int>("RequiredCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("UsrGroup")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("USR_GROUP");
 
                     b.HasKey("LicenseType", "Plant");
 
@@ -204,6 +228,12 @@ namespace TCS.Infrastructure.Migrations
                     b.Property<DateTime>("TrainingDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("Company")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("COMPANY");
+
                     b.Property<string>("CreateDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
@@ -222,9 +252,6 @@ namespace TCS.Infrastructure.Migrations
                     b.Property<decimal>("Hours")
                         .HasColumnType("decimal(6,1)");
 
-                    b.Property<bool>("IsExpired")
-                        .HasColumnType("bit");
-
                     b.Property<string>("ModiDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
@@ -239,6 +266,12 @@ namespace TCS.Infrastructure.Migrations
 
                     b.Property<int>("TrainingType")
                         .HasColumnType("int");
+
+                    b.Property<string>("UsrGroup")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("USR_GROUP");
 
                     b.HasKey("EmployeeId", "LicenseType", "TrainingDate");
 
@@ -258,6 +291,12 @@ namespace TCS.Infrastructure.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)")
                         .IsFixedLength(false);
+
+                    b.Property<string>("Company")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("COMPANY");
 
                     b.Property<string>("CreateDate")
                         .HasMaxLength(8)
@@ -298,6 +337,12 @@ namespace TCS.Infrastructure.Migrations
 
                     b.Property<int>("RequiredHours")
                         .HasColumnType("int");
+
+                    b.Property<string>("UsrGroup")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("USR_GROUP");
 
                     b.HasKey("EmployeeId", "LicenseType");
 

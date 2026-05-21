@@ -48,13 +48,13 @@ public static class DbSeeder
 
         // Training details
         db.TrainingDetails.AddRange(
-            new TrainingDetail { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m, IsExpired = false },
-            new TrainingDetail { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = DateTime.Today.AddMonths(-6), TrainingType = 2, Hours = 16m, IsExpired = false },
-            new TrainingDetail { EmployeeId = "E001", LicenseType = "2.1", TrainingDate = DateTime.Today.AddMonths(-3), TrainingType = 1, Hours = 0m, IsExpired = false },
-            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-3), TrainingType = 1, Hours = 0m, IsExpired = true },
-            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-3).AddMonths(1), TrainingType = 2, Hours = 4m, IsExpired = true },
-            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.2", TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m, IsExpired = false },
-            new TrainingDetail { EmployeeId = "E003", LicenseType = "2.1", TrainingDate = DateTime.Today.AddMonths(-6), TrainingType = 1, Hours = 0m, IsExpired = false }
+            new TrainingDetail { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m },
+            new TrainingDetail { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = DateTime.Today.AddMonths(-6), TrainingType = 2, Hours = 16m },
+            new TrainingDetail { EmployeeId = "E001", LicenseType = "2.1", TrainingDate = DateTime.Today.AddMonths(-3), TrainingType = 1, Hours = 0m },
+            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-3), TrainingType = 1, Hours = 0m },
+            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = DateTime.Today.AddYears(-3).AddMonths(1), TrainingType = 2, Hours = 4m },
+            new TrainingDetail { EmployeeId = "E002", LicenseType = "1.2", TrainingDate = DateTime.Today.AddYears(-1), TrainingType = 1, Hours = 0m },
+            new TrainingDetail { EmployeeId = "E003", LicenseType = "2.1", TrainingDate = DateTime.Today.AddMonths(-6), TrainingType = 1, Hours = 0m }
         );
         await db.SaveChangesAsync();
     }

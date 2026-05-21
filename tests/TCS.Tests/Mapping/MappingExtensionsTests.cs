@@ -13,8 +13,8 @@ public class MappingExtensionsTests
     private static LicenseMaster MakeLicense(int hours = 8, int years = 2) =>
         new() { LicenseType = "1.1", Description = "Test License", Hours = hours, Years = years };
 
-    private static TrainingDetail D(DateTime date, int type, decimal hours, bool isExpired = false) =>
-        new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date, TrainingType = type, Hours = hours, IsExpired = isExpired };
+    private static TrainingDetail D(DateTime date, int type, decimal hours) =>
+        new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date, TrainingType = type, Hours = hours };
 
     // ── OverallStatus ──────────────────────────────────────────────────────
 
@@ -59,34 +59,6 @@ public class MappingExtensionsTests
         dto.OverallStatus.Should().Be(OverallStatus.通過);
         dto.AccumulatedHours.Should().Be(8m);
         dto.RemainingHours.Should().Be(0m);
-    }
-
-    [Fact]
-    public void ToDto_ExpiredDetailInCurrentPeriod_StatusIsExpired()
-    {
-        var acquireDate = new DateTime(2022, 1, 1);
-        var details = new[]
-        {
-            D(acquireDate, 1, 4m, isExpired: true),
-            D(new DateTime(2022, 6, 1), 2, 2m, isExpired: true)
-        };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2025, 1, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.已過期);
-    }
-
-    [Fact]
-    public void ToDto_ExpiredDetailOutsideCurrentPeriod_DoesNotSetExpiredStatus()
-    {
-        // First period expired, but current period (second acquire) is in progress
-        var details = new[]
-        {
-            D(new DateTime(2021, 1, 1), 1, 4m, isExpired: true),   // old period, expired
-            D(new DateTime(2023, 1, 1), 1, 4m, isExpired: false),  // current period (latest acquire)
-            D(new DateTime(2023, 6, 1), 2, 3m, isExpired: false)   // current period retrain
-        };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 1, 1));
-        // currentPeriodDetails starts from 2023-01-01; only those can trigger 已過期
-        dto.OverallStatus.Should().Be(OverallStatus.進行中);
     }
 
     // ── Computed Dates ─────────────────────────────────────────────────────

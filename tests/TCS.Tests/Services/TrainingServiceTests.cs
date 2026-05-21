@@ -16,8 +16,7 @@ public class TrainingServiceTests
         IEmployeeRepository? empRepo = null) =>
         new(trainingRepo ?? Mock.Of<ITrainingRepository>(),
             licenseRepo ?? Mock.Of<ILicenseRepository>(),
-            empRepo ?? Mock.Of<IEmployeeRepository>(),
-            new ExpiryCalculator());
+            empRepo ?? Mock.Of<IEmployeeRepository>());
 
     // ── CreateHeader ───────────────────────────────────────────────────────
 

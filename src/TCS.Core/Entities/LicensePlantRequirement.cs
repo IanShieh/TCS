@@ -12,6 +12,8 @@ public class LicensePlantRequirement : IAuditableEntity
     public string? Modifier { get; set; }
     public string? ModiDate { get; set; }
     public decimal? Flag { get; set; }
+    public string? Company { get; set; }
+    public string? UsrGroup { get; set; }
 
     public LicenseMaster LicenseMasterNav { get; set; } = null!;
 }

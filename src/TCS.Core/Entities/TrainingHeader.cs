@@ -18,6 +18,8 @@ public class TrainingHeader : IAuditableEntity
     public string? Modifier { get; set; }
     public string? ModiDate { get; set; }
     public decimal? Flag { get; set; }
+    public string? Company { get; set; }
+    public string? UsrGroup { get; set; }
 
     public LicenseMaster? LicenseMasterNav { get; set; }
     public ICollection<TrainingDetail> Details { get; set; } = new List<TrainingDetail>();
