@@ -38,3 +38,6 @@ Thumbs.db
 ## IDE
 .idea/
 *.DotSettings.user
+
+## Submodule / nested repos
+ERP.Auth.Common/
