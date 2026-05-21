@@ -76,7 +76,7 @@ function renderTable(items) {
         $('<td></td>').text(formatHireDate(r.HireDate)).appendTo($tr);
         $('<td></td>').text(r.LicenseType ?? '').appendTo($tr);
         $('<td></td>').text(r.Description ?? '').appendTo($tr);
-        $('<td></td>').text(r.RequiredHours ?? '').appendTo($tr);
+        $('<td></td>').text(r.Hours ?? '').appendTo($tr);
         $('<td></td>').text(r.LatestRetrainDate ?? '—').appendTo($tr);
         $('<td></td>').text(r.RemainingHours ?? '').appendTo($tr);
         $('<td></td>').text(r.NextReviewDate ?? '—').appendTo($tr);
@@ -230,14 +230,16 @@ async function openHeaderModal(mode, item) {
     if (mode === 'create') {
         $('#m-EmployeeId').val('').prop('readonly', false);
         $('#m-LicenseType').val('').prop('disabled', false);
-        $('#m-RequiredHours').val('');
+        $('#m-header-Hours').val('');
+        $('#m-header-Years').val('');
         $('#m-Remark').val('');
         await loadPlantOptions('');
         updateEmployeeHint();
     } else {
         $('#m-EmployeeId').val(item.EmployeeId).prop('readonly', true);
         $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
-        $('#m-RequiredHours').val(item.RequiredHours ?? '');
+        $('#m-header-Hours').val(item.Hours ?? '');
+        $('#m-header-Years').val(item.Years ?? '');
         $('#m-Remark').val(item.Remark ?? '');
         await loadPlantOptions(item.LicenseType);
         $('#m-Plant').val(item.Plant ?? '');
@@ -254,10 +256,10 @@ function updateEmployeeHint() {
     $('#m-EmployeeId-hint').text(e ? `${e.Name ?? ''} ${e.Department ? '/ ' + e.Department : ''}` : ' ');
 }
 
-function updateRequiredHoursOnLicenseChange() {
-    const lt = $('#m-LicenseType').val();
-    const lic = licenseMap[lt];
-    $('#m-RequiredHours').val(lic && lic.Hours != null ? lic.Hours : '');
+function updateLicenseSnapshotOnChange() {
+    const lic = licenseMap[$('#m-LicenseType').val()];
+    $('#m-header-Hours').val(lic && lic.Hours != null ? lic.Hours : '');
+    $('#m-header-Years').val(lic && lic.Years != null ? lic.Years : '');
 }
 
 function updateCustomNameVisibility() {
@@ -539,7 +541,7 @@ $(function () {
     $('#m-EmployeeId').on('input change', updateEmployeeHint);
     $('#m-LicenseType').on('change', async function () {
         updateCustomNameVisibility();
-        updateRequiredHoursOnLicenseChange();
+        updateLicenseSnapshotOnChange();
         await loadPlantOptions($(this).val());
     });
 

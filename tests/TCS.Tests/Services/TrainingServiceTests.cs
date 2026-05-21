@@ -21,7 +21,7 @@ public class TrainingServiceTests
     // ── CreateHeader ───────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateHeader_RequiredHours_FromLicense()
+    public async Task CreateHeader_Hours_FromLicense()
     {
         var licenseRepo = new Mock<ILicenseRepository>();
         licenseRepo.Setup(r => r.GetByIdAsync("1.1", default))
@@ -32,8 +32,8 @@ public class TrainingServiceTests
         trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
 
         var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
-            new CreateTrainingHeaderRequest("E001", "1.1", null));
-        Assert.Equal(24, result.RequiredHours);
+            new CreateTrainingHeaderRequest("E001", "1.1", null, null));
+        Assert.Equal(24, result.Hours);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class TrainingServiceTests
         var trainingRepo = new Mock<ITrainingRepository>();
         trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "1.1", default)).ReturnsAsync(true);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            BuildSvc(trainingRepo.Object).CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1", null)));
+            BuildSvc(trainingRepo.Object).CreateHeaderAsync(new CreateTrainingHeaderRequest("E001", "1.1", null, null)));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class TrainingServiceTests
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
-                new CreateTrainingHeaderRequest("E001", "9.9", null)));
+                new CreateTrainingHeaderRequest("E001", "9.9", null, null)));
     }
 
     // ── GetHeader ──────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ public class TrainingServiceTests
     {
         var header = new TrainingHeader
         {
-            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
             Remark = "舊備註",
             Details = new List<TrainingDetail>()
         };
@@ -86,7 +86,7 @@ public class TrainingServiceTests
         trainingRepo.Setup(r => r.UpdateHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
 
         var dto = await BuildSvc(trainingRepo.Object).UpdateHeaderAsync(
-            new UpdateTrainingHeaderRequest("E001", "1.1", "新備註"));
+            new UpdateTrainingHeaderRequest("E001", "1.1", "新備註", null));
         dto.Remark.Should().Be("新備註");
     }
 
@@ -97,7 +97,7 @@ public class TrainingServiceTests
     {
         var header = new TrainingHeader
         {
-            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
             Details = new List<TrainingDetail>()
         };
         var repoMock = new Mock<ITrainingRepository>();
@@ -113,7 +113,7 @@ public class TrainingServiceTests
         var existingDate = DateTime.Today.AddMonths(-2);
         var header = new TrainingHeader
         {
-            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
             Details = new List<TrainingDetail>
             {
                 new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = existingDate, TrainingType = 1, Hours = 4m }
@@ -131,7 +131,7 @@ public class TrainingServiceTests
     {
         var header = new TrainingHeader
         {
-            EmployeeId = "E001", LicenseType = "1.1", RequiredHours = 16,
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
             Details = new List<TrainingDetail>()
         };
         var repoMock = new Mock<ITrainingRepository>();

@@ -62,8 +62,8 @@ public static class MappingExtensions
             ? DateOnly.FromDateTime(lastRetrain.TrainingDate) : null;
 
         // 下次回訓時間 = LatestAcquireDate + Years 年
-        DateOnly? nextReviewDate = latestAcquireDate.HasValue && licenseMaster?.Years.HasValue == true
-            ? latestAcquireDate.Value.AddYears(licenseMaster.Years!.Value)
+        DateOnly? nextReviewDate = latestAcquireDate.HasValue && header.Years.HasValue
+            ? latestAcquireDate.Value.AddYears(header.Years.Value)
             : null;
 
         // 當前週期 = 從 LatestAcquireDate 起的所有單身
@@ -73,7 +73,7 @@ public static class MappingExtensions
             : [];
 
         decimal accumulatedHours = currentPeriodDetails.Sum(d => d.Hours);
-        decimal remainingHours = Math.Max(0m, header.RequiredHours - accumulatedHours);
+        decimal remainingHours = Math.Max(0m, header.Hours - accumulatedHours);
 
         OverallStatus status;
         if (nextReviewDate.HasValue && nextReviewDate.Value < today)
@@ -92,7 +92,8 @@ public static class MappingExtensions
             employee?.HireDate,
             header.LicenseType,
             licenseMaster?.Description,
-            header.RequiredHours,
+            header.Hours,
+            header.Years,
             header.Remark,
             header.Plant,
             latestAcquireDate,

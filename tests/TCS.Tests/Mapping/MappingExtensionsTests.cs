@@ -7,8 +7,8 @@ namespace TCS.Tests.Mapping;
 
 public class MappingExtensionsTests
 {
-    private static TrainingHeader MakeHeader(int requiredHours = 8) =>
-        new() { EmployeeId = "E001", LicenseType = "1.1", RequiredHours = requiredHours };
+    private static TrainingHeader MakeHeader(int hours = 8, int? years = null) =>
+        new() { EmployeeId = "E001", LicenseType = "1.1", Hours = hours, Years = years };
 
     private static LicenseMaster MakeLicense(int hours = 8, int years = 2) =>
         new() { LicenseType = "1.1", Description = "Test License", Hours = hours, Years = years };
@@ -19,44 +19,45 @@ public class MappingExtensionsTests
     // ── OverallStatus ──────────────────────────────────────────────────────
 
     [Fact]
-    public void ToDto_NoDetails_StatusIsNotAcquired()
+    public void ToDto_NoDetails_StatusIsNone()
     {
         var dto = MakeHeader().ToDto(null, MakeLicense(), [], new DateOnly(2025, 6, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.未取得);
+        dto.OverallStatus.Should().Be(OverallStatus.無);
         dto.LatestAcquireDate.Should().BeNull();
         dto.LatestRetrainDate.Should().BeNull();
         dto.NextReviewDate.Should().BeNull();
     }
 
     [Fact]
-    public void ToDto_OnlyRetrainWithoutAcquire_StatusIsNotAcquired()
+    public void ToDto_OnlyRetrainWithoutAcquire_StatusIsNone()
     {
         var details = new[] { D(new DateTime(2024, 1, 1), 2, 8m) };
         var dto = MakeHeader(8).ToDto(null, MakeLicense(), details, new DateOnly(2025, 1, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.未取得);
+        dto.OverallStatus.Should().Be(OverallStatus.無);
         dto.LatestAcquireDate.Should().BeNull();
     }
 
     [Fact]
-    public void ToDto_AcquiredWithInsufficientHours_StatusIsInProgress()
+    public void ToDto_AcquiredWithInsufficientHours_StatusIsNone()
     {
+        // nextReviewDate = 2024-01-01 + 2y = 2026-01-01; today = 2024-06-01; 2026-01-01 > today+1y → 無
         var details = new[] { D(new DateTime(2024, 1, 1), 1, 4m) };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.進行中);
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        dto.OverallStatus.Should().Be(OverallStatus.無);
         dto.AccumulatedHours.Should().Be(4m);
         dto.RemainingHours.Should().Be(4m);
     }
 
     [Fact]
-    public void ToDto_AcquiredWithEnoughHours_StatusIsPassed()
+    public void ToDto_AcquiredWithEnoughHours_StatusIsComplete()
     {
         var details = new[]
         {
             D(new DateTime(2024, 1, 1), 1, 4m),
             D(new DateTime(2024, 6, 1), 2, 4m)
         };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 9, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.通過);
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 9, 1));
+        dto.OverallStatus.Should().Be(OverallStatus.回訓完成);
         dto.AccumulatedHours.Should().Be(8m);
         dto.RemainingHours.Should().Be(0m);
     }
@@ -66,8 +67,9 @@ public class MappingExtensionsTests
     [Fact]
     public void ToDto_NextReviewDate_IsLatestAcquireDatePlusYears()
     {
+        // header.Years=2 drives the calculation
         var details = new[] { D(new DateTime(2024, 3, 15), 1, 4m) };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 3, 15));
         dto.NextReviewDate.Should().Be(new DateOnly(2026, 3, 15));
     }
@@ -80,7 +82,7 @@ public class MappingExtensionsTests
             D(new DateTime(2022, 1, 1), 1, 4m),   // older acquire
             D(new DateTime(2024, 1, 1), 1, 4m)    // newer acquire
         };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 1, 1));
     }
 
@@ -93,7 +95,7 @@ public class MappingExtensionsTests
             D(new DateTime(2024, 3, 1), 2, 2m),
             D(new DateTime(2024, 6, 1), 2, 2m)   // most recent retrain
         };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 9, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 9, 1));
         dto.LatestRetrainDate.Should().Be(new DateOnly(2024, 6, 1));
     }
 
@@ -101,15 +103,16 @@ public class MappingExtensionsTests
     public void ToDto_NoRetrainRecord_LatestRetrainDateIsNull()
     {
         var details = new[] { D(new DateTime(2024, 1, 1), 1, 4m) };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.LatestRetrainDate.Should().BeNull();
     }
 
     [Fact]
-    public void ToDto_NullLicense_NextReviewDateIsNull()
+    public void ToDto_NoYearsOnHeader_NextReviewDateIsNull()
     {
+        // header.Years is null → nextReviewDate should be null regardless of license
         var details = new[] { D(new DateTime(2024, 1, 1), 1, 4m) };
-        var dto = MakeHeader(8).ToDto(null, null, details, new DateOnly(2024, 6, 1));
+        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.NextReviewDate.Should().BeNull();
     }
 
@@ -126,7 +129,7 @@ public class MappingExtensionsTests
             D(new DateTime(2024, 1, 1), 1, 6m),  // second (latest) acquire
             D(new DateTime(2024, 6, 1), 2, 2m)   // second period retrain
         };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2025, 1, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2025, 1, 1));
         dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 1, 1));
         dto.AccumulatedHours.Should().Be(8m);  // 6 + 2 from latest period only
     }
@@ -135,7 +138,7 @@ public class MappingExtensionsTests
     public void ToDto_RemainingHoursIsZeroWhenAccumulatedExceedsRequired()
     {
         var details = new[] { D(new DateTime(2024, 1, 1), 1, 10m) };
-        var dto = MakeHeader(8).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.AccumulatedHours.Should().Be(10m);
         dto.RemainingHours.Should().Be(0m);  // MAX(0, 8 - 10) = 0
     }
@@ -143,7 +146,7 @@ public class MappingExtensionsTests
     [Fact]
     public void ToDto_NoDetails_AccumulatedHoursIsZero()
     {
-        var dto = MakeHeader(16).ToDto(null, MakeLicense(16, 3), [], new DateOnly(2025, 1, 1));
+        var dto = MakeHeader(16, 3).ToDto(null, MakeLicense(16, 3), [], new DateOnly(2025, 1, 1));
         dto.AccumulatedHours.Should().Be(0m);
         dto.RemainingHours.Should().Be(16m);
     }

@@ -18,19 +18,19 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_Valid_IsValid()
     {
-        _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", null)).IsValid.Should().BeTrue();
+        _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", null, null)).IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Header_ValidWithRemark_IsValid()
     {
-        _header.Validate(new CreateTrainingHeaderRequest("E001", "2.3", "備註說明")).IsValid.Should().BeTrue();
+        _header.Validate(new CreateTrainingHeaderRequest("E001", "2.3", "備註說明", null)).IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Header_LargeCategoryLicenseType_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1", null));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1", null, null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "LicenseType" && e.ErrorMessage.Contains("小類"));
     }
@@ -38,7 +38,7 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_EmptyEmployeeId_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("", "1.1", null));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("", "1.1", null, null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "EmployeeId");
     }
@@ -46,7 +46,7 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_EmployeeIdTooLong_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("12345678901", "1.1", null));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("12345678901", "1.1", null, null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "EmployeeId" && e.ErrorMessage.Contains("10 字元"));
     }
@@ -54,7 +54,7 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_RemarkTooLong_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", new string('A', 71)));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", new string('A', 71), null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "Remark" && e.ErrorMessage.Contains("70 字元"));
     }
@@ -62,7 +62,7 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_RemarkWithSqlInjection_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", "備註--DROP"));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1.1", "備註--DROP", null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "Remark" && e.ErrorMessage.Contains("不允許的字元"));
     }
@@ -70,7 +70,7 @@ public class TrainingValidatorTests
     [Fact]
     public void Header_LicenseTypeInvalidFormat_IsInvalid()
     {
-        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "abc", null));
+        var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "abc", null, null));
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "LicenseType" && e.ErrorMessage.Contains("格式"));
     }
