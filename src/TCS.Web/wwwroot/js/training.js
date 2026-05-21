@@ -10,8 +10,7 @@ const INTEGER_REGEX = /^\d+$/;
 let currentPage = 1;
 const pageSize = 20;
 
-let cachedEmployees = null;     // EmployeeDto[]
-let employeeMap = {};            // EmployeeId → EmployeeDto
+let selectedEmployee = null;
 let cachedAllLicenses = null;    // all LicenseMasterDto[]
 let cachedMinorLicenses = null;  // derived: 小類 only
 let licenseMap = {};             // LicenseType → LicenseMasterDto
@@ -165,20 +164,30 @@ function trainingTypeLabel(t) {
     return t === 1 ? '取得證照' : t === 2 ? '回訓' : '';
 }
 
-// ---------- 員工 / 證照快取 ----------
-async function ensureEmployeesLoaded() {
-    if (cachedEmployees) return;
-    const res = await fetch(EMPLOYEE_API);
-    if (!res.ok) { cachedEmployees = []; return; }
-    cachedEmployees = await res.json();
-    employeeMap = {};
-    cachedEmployees.forEach(e => { employeeMap[e.EmployeeId] = e; });
+// ---------- 員工搜尋 ----------
+async function searchEmployees(q) {
+    const resp = await fetch(`/api/employees/search?q=${encodeURIComponent(q)}`);
+    return resp.ok ? await resp.json() : [];
+}
 
-    // datalist 一次性塞入
-    const $list = $('#emp-list').empty();
-    cachedEmployees.forEach(e => {
-        const label = e.Name ? `${e.EmployeeId} - ${e.Name}` : e.EmployeeId;
-        $('<option></option>').val(e.EmployeeId).text(label).appendTo($list);
+function renderEmployeePicker(employees) {
+    const $tbody = $('#emp-picker-tbody').empty();
+    employees.forEach(e => {
+        $('<tr style="cursor:pointer"></tr>')
+            .append($('<td></td>').text(e.EmployeeId))
+            .append($('<td></td>').text(e.Name || ''))
+            .append($('<td></td>').text(e.Department || ''))
+            .append($('<td></td>').text(e.HireDate || ''))
+            .on('click', function () {
+                selectedEmployee = e;
+                $('#m-EmployeeId').val(e.EmployeeId);
+                $('#m-EmployeeId-display').val(
+                    e.Name ? `${e.EmployeeId} - ${e.Name}` : e.EmployeeId);
+                updateEmployeeHint();
+                bootstrap.Modal.getInstance(
+                    document.getElementById('employee-picker-modal')).hide();
+            })
+            .appendTo($tbody);
     });
 }
 
@@ -212,7 +221,7 @@ async function openHeaderModal(mode, item) {
     $('#header-modal-error').addClass('d-none').text('');
     $('#header-modal-title').text(mode === 'create' ? '新增受訓單頭' : '修改受訓單頭');
 
-    await Promise.all([ensureEmployeesLoaded(), ensureAllLicensesLoaded()]);
+    await ensureAllLicensesLoaded();
 
     const $licSel = $('#m-LicenseType').empty();
     $('<option></option>').val('').text('-- 請選擇 --').appendTo($licSel);
@@ -228,7 +237,10 @@ async function openHeaderModal(mode, item) {
     });
 
     if (mode === 'create') {
-        $('#m-EmployeeId').val('').prop('readonly', false);
+        selectedEmployee = null;
+        $('#m-EmployeeId').val('');
+        $('#m-EmployeeId-display').val('').prop('disabled', false);
+        $('#btn-pick-employee').prop('disabled', false);
         $('#m-LicenseType').val('').prop('disabled', false);
         $('#m-header-Hours').val('');
         $('#m-header-Years').val('');
@@ -236,13 +248,26 @@ async function openHeaderModal(mode, item) {
         await loadPlantOptions('');
         updateEmployeeHint();
     } else {
-        $('#m-EmployeeId').val(item.EmployeeId).prop('readonly', true);
+        $('#m-EmployeeId').val(item.EmployeeId);
         $('#m-LicenseType').val(item.LicenseType).prop('disabled', true);
         $('#m-header-Hours').val(item.Hours ?? '');
         $('#m-header-Years').val(item.Years ?? '');
         $('#m-Remark').val(item.Remark ?? '');
         await loadPlantOptions(item.LicenseType);
         $('#m-Plant').val(item.Plant ?? '');
+        const resp = await fetch(`/api/employees/${encodeURIComponent(item.EmployeeId)}`);
+        if (resp.ok) {
+            selectedEmployee = await resp.json();
+            $('#m-EmployeeId-display').val(
+                selectedEmployee.Name
+                    ? `${item.EmployeeId} - ${selectedEmployee.Name}`
+                    : item.EmployeeId
+            ).prop('disabled', true);
+        } else {
+            selectedEmployee = null;
+            $('#m-EmployeeId-display').val(item.EmployeeId).prop('disabled', true);
+        }
+        $('#btn-pick-employee').prop('disabled', true);
         updateEmployeeHint();
     }
     $('#header-form').data('mode', mode);
@@ -251,9 +276,8 @@ async function openHeaderModal(mode, item) {
 }
 
 function updateEmployeeHint() {
-    const id = $('#m-EmployeeId').val();
-    const e = employeeMap[id];
-    $('#m-EmployeeId-hint').text(e ? `${e.Name ?? ''} ${e.Department ? '/ ' + e.Department : ''}` : ' ');
+    const hint = selectedEmployee?.Department || '';
+    $('#m-EmployeeId-hint').text(hint || ' ');
 }
 
 function updateLicenseSnapshotOnChange() {
@@ -283,8 +307,8 @@ async function submitHeader(e) {
     let remark = $('#m-Remark').val().trim() || null;
 
     if (mode === 'create') {
-        if (!employeeMap[employeeId]) {
-            showModalError('#header-modal-error', '員工編號不存在於員工主檔');
+        if (!employeeId) {
+            showModalError('#header-modal-error', '請選擇員工');
             return;
         }
         if (!licenseType) {
@@ -473,10 +497,12 @@ function showModalError(selector, msg) {
 }
 
 async function populateAdvancedDropdowns() {
-    await Promise.all([ensureEmployeesLoaded(), ensureAllLicensesLoaded()]);
+    await ensureAllLicensesLoaded();
 
-    // 部門：自員工資料去重後排序
-    const depts = [...new Set((cachedEmployees || []).map(e => e.Department).filter(Boolean))].sort();
+    // 部門：直接呼叫 API 取得員工清單後去重排序
+    const empResp = await fetch(EMPLOYEE_API);
+    const employees = empResp.ok ? await empResp.json() : [];
+    const depts = [...new Set(employees.map(e => e.Department).filter(Boolean))].sort();
     const $dept = $('#adv-Department').empty();
     $('<option></option>').val('').text('（不限）').appendTo($dept);
     depts.forEach(d => $('<option></option>').val(d).text(d).appendTo($dept));
@@ -538,7 +564,23 @@ $(function () {
 
     $('#header-form').on('submit', submitHeader);
     $('#detail-form').on('submit', submitDetail);
-    $('#m-EmployeeId').on('input change', updateEmployeeHint);
+
+    let _empSearchTimer = null;
+    $('#btn-pick-employee').on('click', function () {
+        selectedEmployee = null;
+        $('#emp-picker-filter').val('');
+        renderEmployeePicker([]);
+        new bootstrap.Modal(document.getElementById('employee-picker-modal')).show();
+    });
+    $('#emp-picker-filter').on('input', function () {
+        const q = $(this).val().trim();
+        clearTimeout(_empSearchTimer);
+        if (!q) { renderEmployeePicker([]); return; }
+        _empSearchTimer = setTimeout(async () => {
+            renderEmployeePicker(await searchEmployees(q));
+        }, 300);
+    });
+
     $('#m-LicenseType').on('change', async function () {
         updateCustomNameVisibility();
         updateLicenseSnapshotOnChange();

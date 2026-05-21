@@ -15,4 +15,14 @@ public class EmployeeRepository : IEmployeeRepository
 
     public Task<Employee?> GetByIdAsync(string employeeId, CancellationToken ct = default) =>
         _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId, ct);
+
+    public Task<List<Employee>> SearchAsync(string q, int maxRows = 50, CancellationToken ct = default) =>
+        _db.Employees
+            .Where(e =>
+                !e.EmployeeId.StartsWith("3") &&
+                EF.Functions.Like(e.EmployeeId, "[0-9][0-9][0-9][0-9]") &&
+                (e.EmployeeId.Contains(q) || e.Name.Contains(q) ||
+                 (e.Department != null && e.Department.Contains(q))))
+            .Take(maxRows)
+            .ToListAsync(ct);
 }

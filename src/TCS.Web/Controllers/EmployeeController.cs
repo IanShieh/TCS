@@ -23,4 +23,11 @@ public class EmployeeController : ControllerBase
         var emp = await _repo.GetByIdAsync(id, ct);
         return emp == null ? NotFound() : Ok(emp.ToDto());
     }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string q = "", CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(q)) return Ok(Array.Empty<object>());
+        return Ok((await _repo.SearchAsync(q, 50, ct)).Select(e => e.ToDto()));
+    }
 }
