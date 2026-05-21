@@ -18,7 +18,7 @@
         { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
         { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
         { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
-        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(3,0)", "nullable": true, "pk": false, "fk": null, "description": "修改次數計數器；建立時=1，每次 UPDATE 自動 +1，達 999 後循環歸 1（系統欄位）" }
       ]
     },
     {
@@ -39,7 +39,7 @@
         { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
         { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
         { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
-        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(3,0)", "nullable": true, "pk": false, "fk": null, "description": "修改次數計數器；建立時=1，每次 UPDATE 自動 +1，達 999 後循環歸 1（系統欄位）" }
       ]
     },
     {
@@ -63,7 +63,7 @@
         { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
         { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
         { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
-        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(3,0)", "nullable": true, "pk": false, "fk": null, "description": "修改次數計數器；建立時=1，每次 UPDATE 自動 +1，達 999 後循環歸 1（系統欄位）" }
       ]
     },
     {
@@ -86,7 +86,7 @@
         { "name": "CREATE_DATE", "logical": "CREATE_DATE", "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "建立日期 YYYYMMDD（系統欄位）" },
         { "name": "MODIFIER",    "logical": "MODIFIER",    "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "修改者（系統欄位）" },
         { "name": "MODI_DATE",   "logical": "MODI_DATE",   "type": "char(8)",      "nullable": true, "pk": false, "fk": null, "description": "修改日期 YYYYMMDD（系統欄位）" },
-        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(1,0)", "nullable": true, "pk": false, "fk": null, "description": "狀態旗標（系統欄位）" }
+        { "name": "FLAG",        "logical": "FLAG",        "type": "decimal(3,0)", "nullable": true, "pk": false, "fk": null, "description": "修改次數計數器；建立時=1，每次 UPDATE 自動 +1，達 999 後循環歸 1（系統欄位）" }
       ]
     }
   ],

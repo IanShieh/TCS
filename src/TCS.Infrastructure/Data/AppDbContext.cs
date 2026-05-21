@@ -40,7 +40,12 @@ public class AppDbContext : DbContext
                 entry.Entity.CreateDate = now;
                 entry.Entity.Company = "BERLIN";
                 entry.Entity.UsrGroup = _currentUserService.UsrGroup;
-                entry.Entity.Flag ??= 1;
+                entry.Entity.Flag = 1;
+            }
+            if (entry.State == EntityState.Modified)
+            {
+                var next = (entry.Entity.Flag ?? 0) + 1;
+                entry.Entity.Flag = next > 999 ? 1 : next;
             }
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
