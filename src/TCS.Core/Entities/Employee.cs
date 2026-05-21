@@ -10,5 +10,4 @@ public class Employee
     public string Name { get; set; } = null!;
     public string? Department { get; set; }
     public string? HireDate { get; set; }   // char(8) YYYYMMDD
-    public string? Plant { get; set; }
 }

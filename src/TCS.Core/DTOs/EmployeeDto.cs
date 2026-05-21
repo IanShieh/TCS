@@ -5,5 +5,4 @@ public record EmployeeDto(
     string EmployeeId,
     string Name,
     string? Department,
-    string? HireDate,
-    string? Plant);
+    string? HireDate);

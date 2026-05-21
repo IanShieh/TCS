@@ -107,7 +107,7 @@ public static class MappingExtensions
     // ── Employee / Plant ───────────────────────────────────────────────────
 
     public static EmployeeDto ToDto(this Employee e) =>
-        new(e.EmployeeId, e.Name, e.Department, e.HireDate, e.Plant);
+        new(e.EmployeeId, e.Name, e.Department, e.HireDate);
 
     public static PlantDto ToDto(this Plant p) =>
         new(p.PlantCode, p.PlantName);
