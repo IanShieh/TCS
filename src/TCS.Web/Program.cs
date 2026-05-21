@@ -5,7 +5,6 @@ using TCS.Core.Interfaces;
 using TCS.Core.Services;
 using TCS.Core.Validators.License;
 using TCS.Infrastructure.Data;
-using TCS.Infrastructure.Persistence;
 using TCS.Infrastructure.Repositories;
 using TCS.Infrastructure.Services;
 using TCS.Web.Filters;
@@ -14,15 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// DB: InMemory fallback for development / SQL Server for production
-var useInMemory = builder.Configuration["USE_INMEMORY_DB"] == "true"
-    || string.IsNullOrEmpty(builder.Configuration.GetConnectionString("DefaultConnection"));
-
-if (useInMemory)
-    builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("TcsDb"));
-else
-    builder.Services.AddDbContext<AppDbContext>(o =>
-        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>(o =>
+    o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Repositories
 builder.Services.AddScoped<ILicenseRepository, LicenseRepository>();
@@ -71,14 +63,6 @@ app.MapErpAuthEndpoints();
 
 app.MapControllers();
 app.MapControllerRoute("default", "{controller=License}/{action=Index}/{id?}");
-
-// Seed on startup in InMemory mode
-if (useInMemory)
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DbSeeder.SeedAsync(db);
-}
 
 app.Run();
 
