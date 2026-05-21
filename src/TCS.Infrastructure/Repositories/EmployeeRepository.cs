@@ -21,8 +21,10 @@ public class EmployeeRepository : IEmployeeRepository
             .Where(e =>
                 !e.EmployeeId.StartsWith("3") &&
                 EF.Functions.Like(e.EmployeeId, "[0-9][0-9][0-9][0-9]") &&
-                (e.EmployeeId.Contains(q) || e.Name.Contains(q) ||
+                (e.EmployeeId.Contains(q) ||
+                 (e.Name != null && e.Name.Contains(q)) ||
                  (e.Department != null && e.Department.Contains(q))))
+            .OrderBy(e => e.EmployeeId)
             .Take(maxRows)
             .ToListAsync(ct);
 }

@@ -567,7 +567,6 @@ $(function () {
 
     let _empSearchTimer = null;
     $('#btn-pick-employee').on('click', function () {
-        selectedEmployee = null;
         $('#emp-picker-filter').val('');
         renderEmployeePicker([]);
         new bootstrap.Modal(document.getElementById('employee-picker-modal')).show();

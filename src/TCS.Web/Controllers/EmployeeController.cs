@@ -17,7 +17,7 @@ public class EmployeeController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct = default)
         => Ok((await _repo.GetAllAsync(ct)).Select(e => e.ToDto()));
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:regex(^(?!search$).+$)}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct = default)
     {
         var emp = await _repo.GetByIdAsync(id, ct);
