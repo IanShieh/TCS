@@ -57,15 +57,17 @@ namespace TCS.Infrastructure.Migrations
             modelBuilder.Entity("TCS.Core.Entities.LicenseMaster", b =>
                 {
                     b.Property<string>("LicenseType")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MA001")
                         .IsFixedLength(false);
 
                     b.Property<string>("Category")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MA003")
                         .IsFixedLength(false);
 
                     b.Property<string>("Company")
@@ -78,35 +80,42 @@ namespace TCS.Infrastructure.Migrations
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("CREATE_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Creator")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("CREATOR")
                         .IsFixedLength(false);
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("MA002");
 
                     b.Property<decimal?>("Flag")
-                        .HasColumnType("decimal(1,0)");
+                        .HasColumnType("decimal(3,0)")
+                        .HasColumnName("FLAG");
 
                     b.Property<int?>("Hours")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("MA004");
 
                     b.Property<string>("ModiDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("MODI_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Modifier")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MODIFIER")
                         .IsFixedLength(false);
 
                     b.Property<string>("UsrGroup")
@@ -116,7 +125,8 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnName("USR_GROUP");
 
                     b.Property<int?>("Years")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("MA005");
 
                     b.HasKey("LicenseType");
 
@@ -126,15 +136,17 @@ namespace TCS.Infrastructure.Migrations
             modelBuilder.Entity("TCS.Core.Entities.LicensePlantRequirement", b =>
                 {
                     b.Property<string>("LicenseType")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MB001")
                         .IsFixedLength(false);
 
                     b.Property<string>("Plant")
                         .HasMaxLength(10)
                         .IsUnicode(false)
                         .HasColumnType("char(10)")
+                        .HasColumnName("MB002")
                         .IsFixedLength();
 
                     b.Property<string>("Company")
@@ -147,31 +159,37 @@ namespace TCS.Infrastructure.Migrations
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("CREATE_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Creator")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("CREATOR")
                         .IsFixedLength(false);
 
                     b.Property<decimal?>("Flag")
-                        .HasColumnType("decimal(1,0)");
+                        .HasColumnType("decimal(3,0)")
+                        .HasColumnName("FLAG");
 
                     b.Property<string>("ModiDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("MODI_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Modifier")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MODIFIER")
                         .IsFixedLength(false);
 
                     b.Property<int>("RequiredCount")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("MB003");
 
                     b.Property<string>("UsrGroup")
                         .HasMaxLength(10)
@@ -207,19 +225,22 @@ namespace TCS.Infrastructure.Migrations
             modelBuilder.Entity("TCS.Core.Entities.TrainingDetail", b =>
                 {
                     b.Property<string>("EmployeeId")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("TB001")
                         .IsFixedLength(false);
 
                     b.Property<string>("LicenseType")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("TB002")
                         .IsFixedLength(false);
 
                     b.Property<DateTime>("TrainingDate")
-                        .HasColumnType("date");
+                        .HasColumnType("date")
+                        .HasColumnName("TB003");
 
                     b.Property<string>("Company")
                         .HasMaxLength(10)
@@ -231,34 +252,41 @@ namespace TCS.Infrastructure.Migrations
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("CREATE_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Creator")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("CREATOR")
                         .IsFixedLength(false);
 
                     b.Property<decimal?>("Flag")
-                        .HasColumnType("decimal(1,0)");
+                        .HasColumnType("decimal(3,0)")
+                        .HasColumnName("FLAG");
 
                     b.Property<decimal>("Hours")
-                        .HasColumnType("decimal(6,1)");
+                        .HasColumnType("decimal(6,1)")
+                        .HasColumnName("TB005");
 
                     b.Property<string>("ModiDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("MODI_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Modifier")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MODIFIER")
                         .IsFixedLength(false);
 
                     b.Property<int>("TrainingType")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("TB004");
 
                     b.Property<string>("UsrGroup")
                         .HasMaxLength(10)
@@ -274,15 +302,17 @@ namespace TCS.Infrastructure.Migrations
             modelBuilder.Entity("TCS.Core.Entities.TrainingHeader", b =>
                 {
                     b.Property<string>("EmployeeId")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("TA001")
                         .IsFixedLength(false);
 
                     b.Property<string>("LicenseType")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("TA002")
                         .IsFixedLength(false);
 
                     b.Property<string>("Company")
@@ -295,41 +325,49 @@ namespace TCS.Infrastructure.Migrations
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("CREATE_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Creator")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("CREATOR")
                         .IsFixedLength(false);
 
                     b.Property<decimal?>("Flag")
-                        .HasColumnType("decimal(1,0)");
+                        .HasColumnType("decimal(3,0)")
+                        .HasColumnName("FLAG");
 
                     b.Property<int>("Hours")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("TA004");
 
                     b.Property<string>("ModiDate")
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("char(8)")
+                        .HasColumnName("MODI_DATE")
                         .IsFixedLength();
 
                     b.Property<string>("Modifier")
-                        .HasMaxLength(20)
+                        .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MODIFIER")
                         .IsFixedLength(false);
 
                     b.Property<string>("Plant")
                         .HasMaxLength(6)
                         .IsUnicode(false)
                         .HasColumnType("char(6)")
+                        .HasColumnName("TA003")
                         .IsFixedLength();
 
                     b.Property<string>("Remark")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("TA005");
 
                     b.Property<string>("UsrGroup")
                         .HasMaxLength(10)
@@ -338,11 +376,13 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnName("USR_GROUP");
 
                     b.Property<int?>("Years")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("TA006");
 
                     b.HasKey("EmployeeId", "LicenseType");
 
-                    b.HasIndex("LicenseType");
+                    b.HasIndex("LicenseType")
+                        .HasDatabaseName("IX_TCSTA_LicenseType");
 
                     b.ToTable("TCSTA", (string)null);
                 });

@@ -10,14 +10,15 @@ public class LicensePlantRequirementConfiguration : IEntityTypeConfiguration<Lic
     {
         builder.ToTable("TCSMB");
         builder.HasKey(e => new { e.LicenseType, e.Plant });
-        builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.Plant).HasMaxLength(10).IsFixedLength(true).IsUnicode(false);
-        builder.Property(e => e.RequiredCount);
-        builder.Property(e => e.Creator).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.CreateDate).HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
-        builder.Property(e => e.Modifier).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.ModiDate).HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
-        builder.Property(e => e.Flag).HasColumnType("decimal(1,0)");
+
+        builder.Property(e => e.LicenseType).HasColumnName("MB001").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.Plant).HasColumnName("MB002").HasMaxLength(10).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.RequiredCount).HasColumnName("MB003");
+        builder.Property(e => e.Creator).HasColumnName("CREATOR").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.CreateDate).HasColumnName("CREATE_DATE").HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.Modifier).HasColumnName("MODIFIER").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.ModiDate).HasColumnName("MODI_DATE").HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.Flag).HasColumnName("FLAG").HasColumnType("decimal(3,0)");
         builder.Property(e => e.Company).HasColumnName("COMPANY").HasMaxLength(10).IsUnicode(false);
         builder.Property(e => e.UsrGroup).HasColumnName("USR_GROUP").HasMaxLength(10).IsUnicode(false);
     }

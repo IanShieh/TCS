@@ -10,16 +10,17 @@ public class LicenseMasterConfiguration : IEntityTypeConfiguration<LicenseMaster
     {
         builder.ToTable("TCSMA");
         builder.HasKey(e => e.LicenseType);
-        builder.Property(e => e.LicenseType).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.Description).HasMaxLength(100);
-        builder.Property(e => e.Category).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.Hours);
-        builder.Property(e => e.Years);
-        builder.Property(e => e.Creator).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.CreateDate).HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
-        builder.Property(e => e.Modifier).HasMaxLength(20).IsFixedLength(false).IsUnicode(false);
-        builder.Property(e => e.ModiDate).HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
-        builder.Property(e => e.Flag).HasColumnType("decimal(1,0)");
+
+        builder.Property(e => e.LicenseType).HasColumnName("MA001").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.Description).HasColumnName("MA002").HasMaxLength(100);
+        builder.Property(e => e.Category).HasColumnName("MA003").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.Hours).HasColumnName("MA004");
+        builder.Property(e => e.Years).HasColumnName("MA005");
+        builder.Property(e => e.Creator).HasColumnName("CREATOR").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.CreateDate).HasColumnName("CREATE_DATE").HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.Modifier).HasColumnName("MODIFIER").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
+        builder.Property(e => e.ModiDate).HasColumnName("MODI_DATE").HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.Flag).HasColumnName("FLAG").HasColumnType("decimal(3,0)");
         builder.Property(e => e.Company).HasColumnName("COMPANY").HasMaxLength(10).IsUnicode(false);
         builder.Property(e => e.UsrGroup).HasColumnName("USR_GROUP").HasMaxLength(10).IsUnicode(false);
 
