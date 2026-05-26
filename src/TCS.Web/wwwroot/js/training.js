@@ -356,6 +356,11 @@ async function deleteSelectedHeader() {
 }
 
 // ---------- Detail Modal ----------
+function syncHoursRequired() {
+    const isRetrain = $('input[name="m-TrainingType"]:checked').val() === '2';
+    $('#m-Hours-required').toggleClass('d-none', !isRetrain);
+}
+
 function openDetailModal(mode, item) {
     if (!selectedHeader) return;
     $('#detail-modal-error').addClass('d-none').text('');
@@ -368,8 +373,9 @@ function openDetailModal(mode, item) {
     } else {
         $('#m-TrainingDate').val(item.TrainingDate).prop('readonly', true);
         $(`input[name="m-TrainingType"][value="${item.TrainingType}"]`).prop('checked', true);
-        $('#m-Hours').val(item.Hours);
+        $('#m-Hours').val(item.Hours ?? '');
     }
+    syncHoursRequired();
     $('#detail-form').data('mode', mode);
     if (mode === 'edit') $('#detail-form').data('originalDate', item.TrainingDate);
     detailModal.show();
@@ -381,10 +387,13 @@ async function submitDetail(e) {
     const mode = $('#detail-form').data('mode');
     const trainingDate = $('#m-TrainingDate').val();
     const trainingType = parseInt($('input[name="m-TrainingType"]:checked').val(), 10);
-    const hours = parseFloat($('#m-Hours').val());
+    const hoursRaw = $('#m-Hours').val();
+    const hours = hoursRaw !== '' ? parseFloat(hoursRaw) : null;
 
     if (!trainingDate) { showModalError('#detail-modal-error', '請選擇受訓日期'); return; }
-    if (Number.isNaN(hours) || hours <= 0) { showModalError('#detail-modal-error', '時數必須 > 0'); return; }
+    if (trainingType === 2 && (hours === null || Number.isNaN(hours) || hours <= 0)) {
+        showModalError('#detail-modal-error', '回訓類型時，時數為必填且必須 > 0'); return;
+    }
 
     // 不可未來日（前端先擋，後端 validator 也會擋）
     if (trainingDate > todayLocalIso()) {
@@ -564,6 +573,7 @@ $(function () {
 
     $('#header-form').on('submit', submitHeader);
     $('#detail-form').on('submit', submitDetail);
+    $('input[name="m-TrainingType"]').on('change', syncHoursRequired);
 
     let _empSearchTimer = null;
     $('#btn-pick-employee').on('click', function () {
