@@ -15,5 +15,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.Name).HasColumnName("MV002").HasMaxLength(100);
         builder.Property(e => e.Department).HasColumnName("MV004").HasMaxLength(50);
         builder.Property(e => e.HireDate).HasColumnName("MV021").HasMaxLength(8).IsFixedLength(true).IsUnicode(false);
+        builder.Property(e => e.MV022).HasColumnName("MV022").IsUnicode(false);
+        builder.Property(e => e.MV023).HasColumnName("MV023").IsUnicode(false);
     }
 }

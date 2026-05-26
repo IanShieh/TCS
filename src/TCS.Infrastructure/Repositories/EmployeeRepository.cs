@@ -21,6 +21,8 @@ public class EmployeeRepository : IEmployeeRepository
             .Where(e =>
                 !e.EmployeeId.StartsWith("3") &&
                 EF.Functions.Like(e.EmployeeId, "[0-9][0-9][0-9][0-9]") &&
+                (e.MV022 == null || e.MV022 == "") &&
+                (e.MV023 == null || e.MV023 == "") &&
                 (e.EmployeeId.Contains(q) ||
                  (e.Name != null && e.Name.Contains(q)) ||
                  (e.Department != null && e.Department.Contains(q))))

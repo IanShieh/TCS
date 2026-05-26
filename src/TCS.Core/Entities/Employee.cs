@@ -10,4 +10,6 @@ public class Employee
     public string Name { get; set; } = null!;
     public string? Department { get; set; }
     public string? HireDate { get; set; }   // char(8) YYYYMMDD
+    public string? MV022 { get; set; }
+    public string? MV023 { get; set; }
 }
