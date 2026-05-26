@@ -14,6 +14,7 @@ public class UpdateTrainingDetailValidator : AbstractValidator<UpdateTrainingDet
 
         RuleFor(x => x.Hours)
             .GreaterThan(0m).WithMessage("受訓時數必須大於 0")
-            .LessThanOrEqualTo(9999.9m).WithMessage("受訓時數不可超過 9999.9");
+            .LessThanOrEqualTo(9999.9m).WithMessage("受訓時數不可超過 9999.9")
+            .When(x => x.Hours.HasValue);
     }
 }

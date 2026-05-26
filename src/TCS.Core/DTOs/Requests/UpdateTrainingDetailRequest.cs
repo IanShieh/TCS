@@ -6,4 +6,4 @@ public record UpdateTrainingDetailRequest(
     string LicenseType,
     DateOnly TrainingDate,
     int TrainingType,
-    decimal Hours);
+    decimal? Hours);

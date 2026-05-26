@@ -72,7 +72,7 @@ public static class MappingExtensions
                      .ToList()
             : [];
 
-        decimal accumulatedHours = currentPeriodDetails.Sum(d => d.Hours);
+        decimal accumulatedHours = currentPeriodDetails.Sum(d => d.Hours ?? 0m);
         decimal remainingHours = Math.Max(0m, header.Hours - accumulatedHours);
 
         OverallStatus status;

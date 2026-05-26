@@ -11,7 +11,7 @@ public class TrainingDetail : IAuditableEntity
     public string LicenseType { get; set; } = null!;
     public DateTime TrainingDate { get; set; }
     public int TrainingType { get; set; }   // 1=取得證照 2=回訓
-    public decimal Hours { get; set; }
+    public decimal? Hours { get; set; }
     public string? Creator { get; set; }
     public string? CreateDate { get; set; }
     public string? Modifier { get; set; }

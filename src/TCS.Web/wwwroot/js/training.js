@@ -166,7 +166,7 @@ function trainingTypeLabel(t) {
 
 // ---------- 員工搜尋 ----------
 async function searchEmployees(q) {
-    const resp = await fetch(`/api/employees/search?q=${encodeURIComponent(q)}`);
+    const resp = await fetch(`${EMPLOYEE_API}/search?q=${encodeURIComponent(q)}`);
     return resp.ok ? await resp.json() : [];
 }
 
@@ -255,7 +255,7 @@ async function openHeaderModal(mode, item) {
         $('#m-Remark').val(item.Remark ?? '');
         await loadPlantOptions(item.LicenseType);
         $('#m-Plant').val(item.Plant ?? '');
-        const resp = await fetch(`/api/employees/${encodeURIComponent(item.EmployeeId)}`);
+        const resp = await fetch(`${EMPLOYEE_API}/${encodeURIComponent(item.EmployeeId)}`);
         if (resp.ok) {
             selectedEmployee = await resp.json();
             $('#m-EmployeeId-display').val(
