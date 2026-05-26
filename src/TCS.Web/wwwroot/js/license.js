@@ -289,6 +289,8 @@ async function submitLicense(e) {
 
     if (res.ok || res.status === 201) {
         licenseModal.hide();
+        cachedAllCategories = null;
+        cachedAllLicensesFull = null;
         Toast.success(mode === 'create' ? '證照已新增' : '證照已更新');
         await loadLicenses();
         return;
