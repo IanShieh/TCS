@@ -80,7 +80,7 @@
         { "name": "TB002", "logical": "LicenseType",  "type": "varchar(10)",  "nullable": false, "pk": true,  "fk": "TCSTA.TA002", "description": "證照類型代碼，複合 FK→TCSTA（cascade delete）" },
         { "name": "TB003", "logical": "TrainingDate", "type": "date",         "nullable": false, "pk": true,  "fk": null,          "description": "訓練日期" },
         { "name": "TB004", "logical": "TrainingType", "type": "int",          "nullable": false, "pk": false, "fk": null,          "description": "訓練類型：1=取得證照，2=回訓" },
-        { "name": "TB005", "logical": "Hours",        "type": "decimal(6,1)", "nullable": false, "pk": false, "fk": null,          "description": "訓練時數" },
+        { "name": "TB005", "logical": "Hours",        "type": "decimal(6,1)", "nullable": true, "pk": false, "fk": null,          "description": "訓練時數" },
         { "name": "COMPANY",     "logical": "COMPANY",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "公司代碼（系統欄位）" },
         { "name": "CREATOR",     "logical": "CREATOR",     "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "建立者（系統欄位）" },
         { "name": "USR_GROUP",   "logical": "USR_GROUP",   "type": "varchar(10)",  "nullable": true, "pk": false, "fk": null, "description": "使用者群組（系統欄位）" },

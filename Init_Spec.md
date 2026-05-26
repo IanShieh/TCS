@@ -8,7 +8,7 @@
 ### 1-7. Sql Server 版本是 10.0.1600.22
 ### 1-8. 結合 JWT 登入系統
 #### 1-8-1. Payload 會有 employeeId, name, action, department, jti, iat, exp
-### 1-9. 使用 DingxinErpTemplate 專案的方式產生 CRUD 主檔
+
 
 ## 2. Table Schema
 ### 2-1. 方案1
