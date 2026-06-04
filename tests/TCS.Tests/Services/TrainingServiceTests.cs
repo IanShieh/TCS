@@ -177,4 +177,28 @@ public class TrainingServiceTests
         var req = new CreateTrainingDetailRequest("E001", "9.9", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 1, 8m);
         await Assert.ThrowsAsync<KeyNotFoundException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
     }
+
+    // ── UpdateDetail ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateDetail_DoesNotChangeTrainingType_OnlyHours()
+    {
+        var date = DateTime.Today.AddMonths(-2);
+        var detail = new TrainingDetail
+        {
+            EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date,
+            TrainingType = 2, Hours = 4m
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.UpdateDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        // 請求嘗試把 type 改成 1，且改時數為 6
+        var req = new UpdateTrainingDetailRequest(
+            "E001", "1.1", DateOnly.FromDateTime(date), 1, 6m);
+        var dto = await BuildSvc(repoMock.Object).UpdateDetailAsync(req);
+
+        dto.TrainingType.Should().Be(2);   // type 鎖定，忽略請求的 1
+        dto.Hours.Should().Be(6m);         // hours 仍更新
+    }
 }

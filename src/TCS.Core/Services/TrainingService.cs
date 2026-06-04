@@ -159,7 +159,7 @@ public class TrainingService : ITrainingService
         var trainingDateTime = req.TrainingDate.ToDateTime(TimeOnly.MinValue);
         var detail = await _repo.GetDetailAsync(req.EmployeeId, req.LicenseType, trainingDateTime, ct)
             ?? throw new KeyNotFoundException($"TrainingDetail ({req.EmployeeId},{req.LicenseType},{req.TrainingDate:yyyy-MM-dd}) not found.");
-        detail.TrainingType = req.TrainingType;
+        // §6 規則3: TrainingType 鎖定不可改（首筆永遠 1、其餘永遠 2），僅更新 Hours
         detail.Hours = req.Hours;
         await _repo.UpdateDetailAsync(detail, ct);
         return detail.ToDto();
