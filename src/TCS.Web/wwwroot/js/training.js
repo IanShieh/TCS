@@ -100,7 +100,7 @@ function renderPagination(totalPages, page) {
 }
 
 // ---------- 選列 ----------
-function selectHeader($tr, item) {
+function applyHeaderSelection($tr, item, selectDetailDate) {
     $('#training-table tbody tr.row-selected').removeClass('row-selected');
     $tr.addClass('row-selected');
     selectedHeader = item;
@@ -108,7 +108,24 @@ function selectHeader($tr, item) {
     TcsAuth.enableIfAllowed('#btn-delete');
     TcsAuth.enableIfAllowed('#btn-detail-add');
     $('#detail-header-label').text(`(${item.EmployeeId} ${item.EmployeeName ?? ''} / ${item.LicenseType})`);
-    loadDetails(item.EmployeeId, item.LicenseType);
+    loadDetails(item.EmployeeId, item.LicenseType, selectDetailDate);
+}
+
+function selectHeader($tr, item) {
+    applyHeaderSelection($tr, item);
+}
+
+// 依鍵值在當前頁找到表頭列並選取（新增/修改後回選用）
+function selectHeaderByKey(employeeId, licenseType, selectDetailDate) {
+    let $match = null;
+    $('#training-table tbody tr').each(function () {
+        const row = $(this).data('row');
+        if (row && row.EmployeeId === employeeId && row.LicenseType === licenseType) {
+            $match = $(this);
+            return false;
+        }
+    });
+    if ($match) applyHeaderSelection($match, $match.data('row'), selectDetailDate);
 }
 
 function clearHeaderSelection() {
@@ -126,7 +143,15 @@ function clearHeaderSelection() {
 }
 
 // ---------- 單身子表 ----------
-async function loadDetails(employeeId, licenseType) {
+function selectDetailRow($tr, d) {
+    $('#detail-table tbody tr.row-selected').removeClass('row-selected');
+    $tr.addClass('row-selected');
+    selectedDetail = d;
+    TcsAuth.enableIfAllowed('#btn-detail-edit');
+    TcsAuth.enableIfAllowed('#btn-detail-delete');
+}
+
+async function loadDetails(employeeId, licenseType, selectDate) {
     selectedDetail = null;
     $('#btn-detail-edit, #btn-detail-delete').prop('disabled', true);
 
@@ -153,13 +178,8 @@ async function loadDetails(employeeId, licenseType) {
         $('<td></td>').text(d.TrainingDate ?? '').appendTo($tr);
         $('<td></td>').text(trainingTypeLabel(d.TrainingType)).appendTo($tr);
         $('<td></td>').text(d.Hours ?? '').appendTo($tr);
-        $tr.on('click', () => {
-            $('#detail-table tbody tr.row-selected').removeClass('row-selected');
-            $tr.addClass('row-selected');
-            selectedDetail = d;
-            TcsAuth.enableIfAllowed('#btn-detail-edit');
-            TcsAuth.enableIfAllowed('#btn-detail-delete');
-        });
+        $tr.on('click', () => selectDetailRow($tr, d));
+        if (selectDate && d.TrainingDate === selectDate) selectDetailRow($tr, d);
         $tbody.append($tr);
     });
 }
@@ -344,6 +364,8 @@ async function submitHeader(e) {
         headerModal.hide();
         Toast.success(mode === 'create' ? '受訓單頭已新增' : '受訓單頭已更新');
         await loadHeaders();
+        // 新增/修改後回選在該筆表頭上
+        selectHeaderByKey(employeeId, licenseType);
         return;
     }
     showModalError('#header-modal-error', await readErrorMessage(res, '儲存失敗'));
@@ -436,9 +458,11 @@ async function submitDetail(e) {
     if (res.ok || res.status === 201) {
         detailModal.hide();
         Toast.success(mode === 'create' ? '受訓紀錄已新增' : '受訓紀錄已更新');
-        await loadDetails(selectedHeader.EmployeeId, selectedHeader.LicenseType);
+        const { EmployeeId, LicenseType } = selectedHeader;
         // 單身改變後單頭衍生欄位（累計、未達時數）也會變，重新撈當前頁
         await loadHeaders();
+        // 回選在該筆表頭，並選回剛新增/修改的單身
+        selectHeaderByKey(EmployeeId, LicenseType, trainingDate);
         return;
     }
     showModalError('#detail-modal-error', await readErrorMessage(res, '儲存失敗'));
