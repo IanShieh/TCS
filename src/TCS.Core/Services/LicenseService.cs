@@ -94,8 +94,8 @@ public class LicenseService : ILicenseService
     {
         var reqs = await _repo.GetPlantRequirementsAsync(licenseType, ct);
         var plants = await _plantRepo.GetAllAsync(ct);
-        var plantMap = plants.ToDictionary(p => p.PlantCode, p => p.PlantName);
-        return reqs.Select(r => r.ToDto(plantMap.GetValueOrDefault(r.Plant))).ToList();
+        var plantMap = plants.ToDictionary(p => p.PlantCode.Trim(), p => p.PlantName);
+        return reqs.Select(r => r.ToDto(plantMap.GetValueOrDefault(r.Plant.Trim()))).ToList();
     }
 
     public async Task<LicensePlantRequirementDto> CreatePlantRequirementAsync(CreateLicensePlantRequirementRequest req, CancellationToken ct = default)
