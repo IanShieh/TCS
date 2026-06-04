@@ -23,8 +23,8 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script>window.ERP_BASE = '@Context.Request.PathBase';</script>
     <script src="~/_content/ERP.Auth.Common/js/erp-auth.js"></script>
-    <script src="~/js/tcs-auth.js"></script>
-    <script src="~/js/toast.js"></script>
+    <script src="~/js/tcs-auth.js" asp-append-version="true"></script>
+    <script src="~/js/toast.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

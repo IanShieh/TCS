@@ -400,9 +400,15 @@ function openDetailModal(mode, item) {
     if (mode === 'create') {
         $('#m-TrainingDate').val('').prop('readonly', false);
         setTrainingTypeLocked(currentDetailCount === 0 ? 1 : 2);
+        // 回訓（第二筆起）日期不可早於取得證照日；首筆無此限制（後端亦會驗證）
+        if (currentDetailCount > 0 && selectedHeader.LatestAcquireDate) {
+            $('#m-TrainingDate').attr('min', selectedHeader.LatestAcquireDate);
+        } else {
+            $('#m-TrainingDate').removeAttr('min');
+        }
         $('#m-Hours').val('');
     } else {
-        $('#m-TrainingDate').val(item.TrainingDate).prop('readonly', true);
+        $('#m-TrainingDate').val(item.TrainingDate).prop('readonly', true).removeAttr('min');
         setTrainingTypeLocked(item.TrainingType);
         $('#m-Hours').val(item.Hours ?? '');
     }
@@ -429,6 +435,13 @@ async function submitDetail(e) {
     // 不可未來日（前端先擋，後端 validator 也會擋）
     if (trainingDate > todayLocalIso()) {
         showModalError('#detail-modal-error', '受訓日期不可為未來日');
+        return;
+    }
+
+    // 回訓不可早於取得證照日（前端先擋，後端 service 也會擋）
+    if (mode === 'create' && trainingType === 2
+        && selectedHeader.LatestAcquireDate && trainingDate < selectedHeader.LatestAcquireDate) {
+        showModalError('#detail-modal-error', `回訓日期不可早於取得證照日期（${selectedHeader.LatestAcquireDate}）`);
         return;
     }
 

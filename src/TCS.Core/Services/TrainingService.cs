@@ -142,6 +142,16 @@ public class TrainingService : ITrainingService
         if (header.Details.Any(d => d.TrainingDate == trainingDateTime))
             throw new InvalidOperationException($"該受訓日期 {req.TrainingDate:yyyy-MM-dd} 已存在。");
 
+        // §6 規則3 不變式: 回訓日期不可早於取得證照（anchor）日期，
+        // 否則 ToDto 的 roll-forward 推導（只累加 date >= anchor）會忽略該筆，形成幽靈紀錄。
+        if (req.TrainingType == (int)TrainingType.回訓)
+        {
+            var anchor = header.Details.FirstOrDefault(d => d.TrainingType == (int)TrainingType.取得證照);
+            if (anchor is not null && trainingDateTime < anchor.TrainingDate)
+                throw new InvalidOperationException(
+                    $"回訓日期不可早於取得證照日期（{DateOnly.FromDateTime(anchor.TrainingDate):yyyy-MM-dd}）。");
+        }
+
         var detail = new TrainingDetail
         {
             EmployeeId = req.EmployeeId,

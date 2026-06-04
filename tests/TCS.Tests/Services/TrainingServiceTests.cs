@@ -169,6 +169,47 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task AddDetail_RetrainBeforeAcquireDate_ThrowsInvalidOperation()
+    {
+        var acquireDate = DateTime.Today.AddMonths(-2);
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
+            Details = new List<TrainingDetail>
+            {
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = acquireDate, TrainingType = 1, Hours = 0m }
+            }
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+
+        // 回訓日期早於取得證照（anchor）日期 → 應被拒絕（否則衍生推導會忽略該筆）
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(acquireDate.AddMonths(-1)), 2, 4m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
+    }
+
+    [Fact]
+    public async Task AddDetail_RetrainAfterAcquireDate_Succeeds()
+    {
+        var acquireDate = DateTime.Today.AddMonths(-3);
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
+            Details = new List<TrainingDetail>
+            {
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = acquireDate, TrainingType = 1, Hours = 0m }
+            }
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+        repoMock.Setup(r => r.AddDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(acquireDate.AddMonths(1)), 2, 4m);
+        var dto = await BuildSvc(repoMock.Object).AddDetailAsync(req);
+        dto.TrainingType.Should().Be(2);
+    }
+
+    [Fact]
     public async Task AddDetail_HeaderNotFound_ThrowsKeyNotFound()
     {
         var repoMock = new Mock<ITrainingRepository>();
