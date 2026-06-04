@@ -43,16 +43,16 @@ public static class MappingExtensions
         IReadOnlyList<TrainingDetail> details,
         DateOnly today)
     {
-        // 最後一筆取得證照
-        var lastAcquire = details
+        // anchor = 最早一筆 type 1（取得證照）；每張表頭恰好一筆（§6 規則3 不變式）
+        var initialAcquire = details
             .Where(d => d.TrainingType == (int)TrainingType.取得證照)
-            .OrderByDescending(d => d.TrainingDate)
+            .OrderBy(d => d.TrainingDate)
             .FirstOrDefault();
 
-        DateOnly? latestAcquireDate = lastAcquire is not null
-            ? DateOnly.FromDateTime(lastAcquire.TrainingDate) : null;
+        DateOnly? latestAcquireDate = initialAcquire is not null
+            ? DateOnly.FromDateTime(initialAcquire.TrainingDate) : null;
 
-        // 最後一筆回訓
+        // 最後一筆回訓（語意不變）
         var lastRetrain = details
             .Where(d => d.TrainingType == (int)TrainingType.回訓)
             .OrderByDescending(d => d.TrainingDate)
@@ -61,19 +61,33 @@ public static class MappingExtensions
         DateOnly? latestRetrainDate = lastRetrain is not null
             ? DateOnly.FromDateTime(lastRetrain.TrainingDate) : null;
 
-        // 下次回訓時間 = LatestAcquireDate + Years 年
-        DateOnly? nextReviewDate = latestAcquireDate.HasValue && header.Years.HasValue
-            ? latestAcquireDate.Value.AddYears(header.Years.Value)
+        // roll-forward 週期推導（§3）：只累加 type 2 時數；達標即前進 anchor，超額滾入（§6 規則2-A）
+        DateOnly? latestAnchor = latestAcquireDate;
+        decimal acc = 0m;
+        if (initialAcquire is not null)
+        {
+            var sessions = details
+                .Where(d => d.TrainingType == (int)TrainingType.回訓
+                            && d.TrainingDate >= initialAcquire.TrainingDate)
+                .OrderBy(d => d.TrainingDate);
+            foreach (var s in sessions)
+            {
+                acc += s.Hours ?? 0m;
+                if (acc >= header.Hours)
+                {
+                    latestAnchor = DateOnly.FromDateTime(s.TrainingDate);
+                    acc -= header.Hours;        // 超額滾入下一週期（§6 規則2-A）
+                }
+            }
+        }
+
+        // 下次回訓 = latestAnchor + Years（Years 為 null → null）
+        DateOnly? nextReviewDate = latestAnchor.HasValue && header.Years.HasValue
+            ? latestAnchor.Value.AddYears(header.Years.Value)
             : null;
 
-        // 當前週期 = 從 LatestAcquireDate 起的所有單身
-        var currentPeriodDetails = latestAcquireDate.HasValue
-            ? details.Where(d => DateOnly.FromDateTime(d.TrainingDate) >= latestAcquireDate.Value)
-                     .ToList()
-            : [];
-
-        decimal accumulatedHours = currentPeriodDetails.Sum(d => d.Hours ?? 0m);
-        decimal remainingHours = Math.Max(0m, header.Hours - accumulatedHours);
+        decimal accumulatedHours = acc;
+        decimal remainingHours = Math.Max(0m, header.Hours - acc);
 
         OverallStatus status;
         if (nextReviewDate.HasValue && nextReviewDate.Value < today)

@@ -37,31 +37,6 @@ public class MappingExtensionsTests
         dto.LatestAcquireDate.Should().BeNull();
     }
 
-    [Fact]
-    public void ToDto_AcquiredWithInsufficientHours_StatusIsNone()
-    {
-        // nextReviewDate = 2024-01-01 + 2y = 2026-01-01; today = 2024-06-01; 2026-01-01 > today+1y → 無
-        var details = new[] { D(new DateTime(2024, 1, 1), 1, 4m) };
-        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.無);
-        dto.AccumulatedHours.Should().Be(4m);
-        dto.RemainingHours.Should().Be(4m);
-    }
-
-    [Fact]
-    public void ToDto_AcquiredWithEnoughHours_StatusIsComplete()
-    {
-        var details = new[]
-        {
-            D(new DateTime(2024, 1, 1), 1, 4m),
-            D(new DateTime(2024, 6, 1), 2, 4m)
-        };
-        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 9, 1));
-        dto.OverallStatus.Should().Be(OverallStatus.回訓完成);
-        dto.AccumulatedHours.Should().Be(8m);
-        dto.RemainingHours.Should().Be(0m);
-    }
-
     // ── Computed Dates ─────────────────────────────────────────────────────
 
     [Fact]
@@ -72,18 +47,6 @@ public class MappingExtensionsTests
         var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
         dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 3, 15));
         dto.NextReviewDate.Should().Be(new DateOnly(2026, 3, 15));
-    }
-
-    [Fact]
-    public void ToDto_LatestAcquireDate_PicksMostRecent()
-    {
-        var details = new[]
-        {
-            D(new DateTime(2022, 1, 1), 1, 4m),   // older acquire
-            D(new DateTime(2024, 1, 1), 1, 4m)    // newer acquire
-        };
-        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
-        dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 1, 1));
     }
 
     [Fact]
@@ -119,36 +82,106 @@ public class MappingExtensionsTests
     // ── Accumulated & Remaining Hours ──────────────────────────────────────
 
     [Fact]
-    public void ToDto_AccumulatedHoursOnlyCountsFromLatestAcquire()
-    {
-        // Two acquire periods: hours from first period must NOT be counted in current accumulation
-        var details = new[]
-        {
-            D(new DateTime(2022, 1, 1), 1, 4m),  // first acquire
-            D(new DateTime(2022, 6, 1), 2, 4m),  // first period retrain
-            D(new DateTime(2024, 1, 1), 1, 6m),  // second (latest) acquire
-            D(new DateTime(2024, 6, 1), 2, 2m)   // second period retrain
-        };
-        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2025, 1, 1));
-        dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 1, 1));
-        dto.AccumulatedHours.Should().Be(8m);  // 6 + 2 from latest period only
-    }
-
-    [Fact]
-    public void ToDto_RemainingHoursIsZeroWhenAccumulatedExceedsRequired()
-    {
-        var details = new[] { D(new DateTime(2024, 1, 1), 1, 10m) };
-        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
-        dto.AccumulatedHours.Should().Be(10m);
-        dto.RemainingHours.Should().Be(0m);  // MAX(0, 8 - 10) = 0
-    }
-
-    [Fact]
     public void ToDto_NoDetails_AccumulatedHoursIsZero()
     {
         var dto = MakeHeader(16, 3).ToDto(null, MakeLicense(16, 3), [], new DateOnly(2025, 1, 1));
         dto.AccumulatedHours.Should().Be(0m);
         dto.RemainingHours.Should().Be(16m);
+    }
+
+    // ── Roll-forward 回訓週期（spec §7 情境）─────────────────────────────────
+
+    // 情境2：有回訓但累計未達標 → 期限不前進，remaining = H - acc
+    [Fact]
+    public void ToDto_RetrainBelowThreshold_PeriodDoesNotAdvance()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 3, 1), 2, 3m),
+            D(new DateTime(2022, 5, 1), 2, 3m)
+        };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2022, 6, 1));
+        dto.LatestAcquireDate.Should().Be(new DateOnly(2020, 1, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2023, 1, 1)); // 初始 + 3，未前進
+        dto.AccumulatedHours.Should().Be(6m);
+        dto.RemainingHours.Should().Be(2m);
+    }
+
+    // 情境3：累計剛好達標 → anchor 前進到跨門檻那筆，滾入後 acc = 0
+    [Fact]
+    public void ToDto_RetrainMeetsThreshold_PeriodAdvances()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 3, 1), 2, 3m),
+            D(new DateTime(2022, 5, 1), 2, 5m)   // 累計 8 → 達標
+        };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2023, 1, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2025, 5, 1)); // 2022-05-01 + 3
+        dto.AccumulatedHours.Should().Be(0m);
+        dto.RemainingHours.Should().Be(8m);
+    }
+
+    // 情境4：連續多週期達標 → anchor 逐次前進，取最後一個完成日 + N
+    [Fact]
+    public void ToDto_MultipleCyclesMet_AnchorAdvancesEachTime()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 3, 1), 2, 3m),
+            D(new DateTime(2022, 5, 1), 2, 5m),  // C1 = 2022-05-01
+            D(new DateTime(2023, 6, 1), 2, 8m)   // C2 = 2023-06-01
+        };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2024, 1, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2026, 6, 1)); // 2023-06-01 + 3
+        dto.RemainingHours.Should().Be(8m);
+    }
+
+    // 情境5：達標後又有回訓但未達下一週期門檻 → 期限不變，remaining 反映下一週期累計
+    [Fact]
+    public void ToDto_MetThenPartial_NextReviewUnchanged()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2022, 5, 1), 2, 8m),  // C1 = 2022-05-01
+            D(new DateTime(2024, 1, 1), 2, 4m)   // 下一週期累積中
+        };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2024, 6, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2025, 5, 1)); // 2022-05-01 + 3
+        dto.AccumulatedHours.Should().Be(4m);
+        dto.RemainingHours.Should().Be(4m);
+    }
+
+    // 情境7：超額時數採滾入（規則2-A）→ 多出的時數計入下一週期
+    [Fact]
+    public void ToDto_OverflowHours_RollsIntoNextCycle()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 3, 1), 2, 6m),
+            D(new DateTime(2022, 5, 1), 2, 5m)   // 累計 11 → 達標，超額 3
+        };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2023, 1, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2025, 5, 1)); // 2022-05-01 + 3
+        dto.AccumulatedHours.Should().Be(3m);   // 11 - 8 滾入
+        dto.RemainingHours.Should().Be(5m);     // 8 - 3
+    }
+
+    // 情境1：只有初始取得、無任何回訓 → NextReview = 取得 + N，remaining = H
+    [Fact]
+    public void ToDto_OnlyInitialAcquire_RemainingIsFullHours()
+    {
+        var details = new[] { D(new DateTime(2020, 1, 1), 1, 0m) };
+        var dto = MakeHeader(8, 3).ToDto(null, MakeLicense(8, 3), details, new DateOnly(2021, 1, 1));
+        dto.LatestAcquireDate.Should().Be(new DateOnly(2020, 1, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2023, 1, 1));
+        dto.AccumulatedHours.Should().Be(0m);
+        dto.RemainingHours.Should().Be(8m);
     }
 
     // ── Employee / License Info ────────────────────────────────────────────
