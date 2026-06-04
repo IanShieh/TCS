@@ -210,6 +210,28 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task AddDetail_DateNotAfterLatest_ThrowsInvalidOperation()
+    {
+        var acquireDate = DateTime.Today.AddMonths(-3);
+        var latestRetrain = DateTime.Today.AddMonths(-1);
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
+            Details = new List<TrainingDetail>
+            {
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = acquireDate, TrainingType = 1, Hours = 0m },
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = latestRetrain, TrainingType = 2, Hours = 4m }
+            }
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+
+        // 新增日期介於兩筆之間（早於最後一筆）→ 應被拒絕（append-only）
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(DateTime.Today.AddMonths(-2)), 2, 4m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => BuildSvc(repoMock.Object).AddDetailAsync(req));
+    }
+
+    [Fact]
     public async Task AddDetail_HeaderNotFound_ThrowsKeyNotFound()
     {
         var repoMock = new Mock<ITrainingRepository>();

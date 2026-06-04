@@ -18,6 +18,7 @@ let licenseMap = {};             // LicenseType → LicenseMasterDto
 let selectedHeader = null;
 let selectedDetail = null;
 let currentDetailCount = 0;   // 當前選取表頭的單身筆數（決定新增時類型）
+let latestDetailDate = null;  // 當前選取表頭最後一筆受訓日期（append-only 用）
 
 let headerModal, detailModal;
 
@@ -132,6 +133,7 @@ function clearHeaderSelection() {
     selectedHeader = null;
     selectedDetail = null;
     currentDetailCount = 0;
+    latestDetailDate = null;
     $('#training-table tbody tr.row-selected').removeClass('row-selected');
     $('#btn-edit, #btn-delete').prop('disabled', true);
     $('#btn-detail-add, #btn-detail-edit, #btn-detail-delete').prop('disabled', true);
@@ -147,8 +149,13 @@ function selectDetailRow($tr, d) {
     $('#detail-table tbody tr.row-selected').removeClass('row-selected');
     $tr.addClass('row-selected');
     selectedDetail = d;
-    TcsAuth.enableIfAllowed('#btn-detail-edit');
-    TcsAuth.enableIfAllowed('#btn-detail-delete');
+    // append-only：僅最後一筆（最新日期）可編輯／刪除，其餘列鎖定
+    if (d.TrainingDate === latestDetailDate) {
+        TcsAuth.enableIfAllowed('#btn-detail-edit');
+        TcsAuth.enableIfAllowed('#btn-detail-delete');
+    } else {
+        $('#btn-detail-edit, #btn-detail-delete').prop('disabled', true);
+    }
 }
 
 async function loadDetails(employeeId, licenseType, selectDate) {
@@ -160,6 +167,7 @@ async function loadDetails(employeeId, licenseType, selectDate) {
     const $tbody = $('#detail-table tbody').empty();
     if (!res.ok) {
         currentDetailCount = 0;
+        latestDetailDate = null;
         $tbody.append($('<tr></tr>').append(
             $('<td colspan="3" class="text-center text-danger"></td>').text('載入失敗')
         ));
@@ -167,6 +175,9 @@ async function loadDetails(employeeId, licenseType, selectDate) {
     }
     const items = await res.json();
     currentDetailCount = items.length;
+    latestDetailDate = items.length
+        ? items.reduce((mx, d) => (d.TrainingDate > mx ? d.TrainingDate : mx), items[0].TrainingDate)
+        : null;
     if (!items.length) {
         $tbody.append($('<tr></tr>').append(
             $('<td colspan="3" class="text-center text-muted"></td>').text('（無資料）')
@@ -400,9 +411,9 @@ function openDetailModal(mode, item) {
     if (mode === 'create') {
         $('#m-TrainingDate').val('').prop('readonly', false);
         setTrainingTypeLocked(currentDetailCount === 0 ? 1 : 2);
-        // 回訓（第二筆起）日期不可早於取得證照日；首筆無此限制（後端亦會驗證）
-        if (currentDetailCount > 0 && selectedHeader.LatestAcquireDate) {
-            $('#m-TrainingDate').attr('min', selectedHeader.LatestAcquireDate);
+        // append-only：新增日期必須晚於最後一筆紀錄；首筆無此限制（後端亦會驗證）
+        if (currentDetailCount > 0 && latestDetailDate) {
+            $('#m-TrainingDate').attr('min', nextDayIso(latestDetailDate));
         } else {
             $('#m-TrainingDate').removeAttr('min');
         }
@@ -438,10 +449,9 @@ async function submitDetail(e) {
         return;
     }
 
-    // 回訓不可早於取得證照日（前端先擋，後端 service 也會擋）
-    if (mode === 'create' && trainingType === 2
-        && selectedHeader.LatestAcquireDate && trainingDate < selectedHeader.LatestAcquireDate) {
-        showModalError('#detail-modal-error', `回訓日期不可早於取得證照日期（${selectedHeader.LatestAcquireDate}）`);
+    // append-only：新增日期必須晚於最後一筆紀錄（前端先擋，後端 service 也會擋）
+    if (mode === 'create' && latestDetailDate && trainingDate <= latestDetailDate) {
+        showModalError('#detail-modal-error', `受訓日期必須晚於最後一筆紀錄（${latestDetailDate}）`);
         return;
     }
 
@@ -529,6 +539,15 @@ function formatHireDate(s) {
         return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
     }
     return s;
+}
+
+function nextDayIso(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 
 function todayLocalIso() {
