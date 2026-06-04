@@ -17,6 +17,7 @@ let licenseMap = {};             // LicenseType → LicenseMasterDto
 
 let selectedHeader = null;
 let selectedDetail = null;
+let currentDetailCount = 0;   // 當前選取表頭的單身筆數（決定新增時類型）
 
 let headerModal, detailModal;
 
@@ -113,6 +114,7 @@ function selectHeader($tr, item) {
 function clearHeaderSelection() {
     selectedHeader = null;
     selectedDetail = null;
+    currentDetailCount = 0;
     $('#training-table tbody tr.row-selected').removeClass('row-selected');
     $('#btn-edit, #btn-delete').prop('disabled', true);
     $('#btn-detail-add, #btn-detail-edit, #btn-detail-delete').prop('disabled', true);
@@ -132,12 +134,14 @@ async function loadDetails(employeeId, licenseType) {
     const res = await fetch(url);
     const $tbody = $('#detail-table tbody').empty();
     if (!res.ok) {
+        currentDetailCount = 0;
         $tbody.append($('<tr></tr>').append(
             $('<td colspan="3" class="text-center text-danger"></td>').text('載入失敗')
         ));
         return;
     }
     const items = await res.json();
+    currentDetailCount = items.length;
     if (!items.length) {
         $tbody.append($('<tr></tr>').append(
             $('<td colspan="3" class="text-center text-muted"></td>').text('（無資料）')
@@ -361,6 +365,11 @@ function syncHoursRequired() {
     $('#m-Hours-required').toggleClass('d-none', !isRetrain);
 }
 
+function setTrainingTypeLocked(type) {
+    $(`input[name="m-TrainingType"][value="${type}"]`).prop('checked', true);
+    $('input[name="m-TrainingType"]').prop('disabled', true);
+}
+
 function openDetailModal(mode, item) {
     if (!selectedHeader) return;
     $('#detail-modal-error').addClass('d-none').text('');
@@ -368,11 +377,11 @@ function openDetailModal(mode, item) {
 
     if (mode === 'create') {
         $('#m-TrainingDate').val('').prop('readonly', false);
-        $('input[name="m-TrainingType"][value="1"]').prop('checked', true);
+        setTrainingTypeLocked(currentDetailCount === 0 ? 1 : 2);
         $('#m-Hours').val('');
     } else {
         $('#m-TrainingDate').val(item.TrainingDate).prop('readonly', true);
-        $(`input[name="m-TrainingType"][value="${item.TrainingType}"]`).prop('checked', true);
+        setTrainingTypeLocked(item.TrainingType);
         $('#m-Hours').val(item.Hours ?? '');
     }
     syncHoursRequired();
