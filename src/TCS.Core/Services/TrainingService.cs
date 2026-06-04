@@ -129,9 +129,13 @@ public class TrainingService : ITrainingService
         var header = await _repo.GetHeaderAsync(req.EmployeeId, req.LicenseType, includeDetails: true, ct)
             ?? throw new KeyNotFoundException($"TrainingHeader ({req.EmployeeId},{req.LicenseType}) not found.");
 
-        // §8-2: first detail must be type 1 (取得證照)
+        // §6 規則3: 首筆必須是 type 1（取得證照）
         if (!header.Details.Any() && req.TrainingType != (int)TrainingType.取得證照)
             throw new InvalidOperationException("第一筆受訓記錄必須為「取得證照」（TrainingType = 1）。");
+
+        // §6 規則3: 第二筆起必須是 type 2（回訓），維持單一 type 1 不變式
+        if (header.Details.Any() && req.TrainingType == (int)TrainingType.取得證照)
+            throw new InvalidOperationException("已有受訓記錄，後續只能新增「回訓」（TrainingType = 2）。");
 
         // Check for duplicate date
         var trainingDateTime = req.TrainingDate.ToDateTime(TimeOnly.MinValue);

@@ -109,6 +109,27 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task AddDetail_SecondRecordType1_ThrowsInvalidOperation()
+    {
+        var existing = DateTime.Today.AddMonths(-3);
+        var header = new TrainingHeader
+        {
+            EmployeeId = "E001", LicenseType = "1.1", Hours = 16,
+            Details = new List<TrainingDetail>
+            {
+                new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = existing, TrainingType = 1, Hours = 0m }
+            }
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+
+        var req = new CreateTrainingDetailRequest(
+            "E001", "1.1", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 1, 4m);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => BuildSvc(repoMock.Object).AddDetailAsync(req));
+    }
+
+    [Fact]
     public async Task AddDetail_DuplicateDate_ThrowsInvalidOperation()
     {
         var existingDate = DateTime.Today.AddMonths(-2);
