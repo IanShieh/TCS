@@ -178,7 +178,8 @@ function populateCategoryOptions() {
     const $sel = $('#m-Category').empty();
     $('<option></option>').val('').text('-- 請選擇 --').appendTo($sel);
     $('<option></option>').val('__MAJOR__').text('大類').appendTo($sel);
-    (cachedAllCategories || []).forEach(x => {
+    // 隱藏 '99'（其他）：其他大類不會有對應的小類
+    (cachedAllCategories || []).filter(x => x.LicenseType !== '99').forEach(x => {
         $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($sel);
     });
 }
@@ -202,7 +203,7 @@ function suggestNextLicenseType(selectedCategory) {
     if (!cachedAllLicensesFull) return '';
     if (selectedCategory === '__MAJOR__') {
         const majors = cachedAllLicensesFull
-            .filter(x => INTEGER_REGEX.test(x.LicenseType))
+            .filter(x => INTEGER_REGEX.test(x.LicenseType) && x.LicenseType !== '99')
             .map(x => parseInt(x.LicenseType, 10));
         return String(majors.length ? Math.max(...majors) + 1 : 1);
     }
@@ -233,22 +234,11 @@ function isLicenseTypeMinor(value) {
 }
 
 function syncCategoryVisibility() {
-    const v = $('#m-LicenseType').val();
-    const categoryVal = $('#m-Category').val();
-    const categoryIsMajor = categoryVal === '__MAJOR__';
-    const ltIsMajor = isLicenseTypeMajor(v);
-
     // Category wrap is always visible — it is the primary input field
     $('#m-Category-wrap').show();
-
-    if (ltIsMajor || categoryIsMajor) {
-        $('#m-Hours-required, #m-Years-required').addClass('d-none');
-        $('#m-Hours, #m-Years').prop('required', false);
-    } else {
-        const minor = isLicenseTypeMinor(v);
-        $('#m-Hours-required, #m-Years-required').toggleClass('d-none', !minor);
-        $('#m-Hours, #m-Years').prop('required', minor);
-    }
+    // Hours and Years are always optional
+    $('#m-Hours-required, #m-Years-required').addClass('d-none');
+    $('#m-Hours, #m-Years').prop('required', false);
 }
 
 async function submitLicense(e) {
@@ -274,8 +264,8 @@ async function submitLicense(e) {
     // 小類前端基本檢核（後端 FluentValidation 會再次驗證）
     if (isMinor) {
         if (!body.Category) { showModalError('#license-modal-error', '小類需指定對應大類'); return; }
-        if (body.Hours == null || body.Hours <= 0) { showModalError('#license-modal-error', '小類所需時數必填且 > 0'); return; }
-        if (body.Years == null || body.Years < 1) { showModalError('#license-modal-error', '小類年數必填且 ≥ 1'); return; }
+        if (body.Hours != null && body.Hours <= 0) { showModalError('#license-modal-error', '時數若填寫必須 > 0'); return; }
+        if (body.Years != null && body.Years < 1) { showModalError('#license-modal-error', '年數若填寫必須 ≥ 1'); return; }
     }
 
     const mode = $('#license-form').data('mode');

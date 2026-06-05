@@ -75,11 +75,11 @@ public class LicenseMasterValidatorTests
     }
 
     [Fact]
-    public void Create_SmallCategoryWithNullHours_IsInvalid()
+    public void Create_SmallCategoryWithNullHours_IsValid()
     {
+        // Hours 不再必填
         var result = _create.Validate(new CreateLicenseMasterRequest("1.1", "低壓電氣作業", "1", null, 2));
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Hours" && e.ErrorMessage.Contains("時數"));
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -91,11 +91,11 @@ public class LicenseMasterValidatorTests
     }
 
     [Fact]
-    public void Create_SmallCategoryWithNullYears_IsInvalid()
+    public void Create_SmallCategoryWithNullYears_IsValid()
     {
+        // Years 不再必填
         var result = _create.Validate(new CreateLicenseMasterRequest("1.1", "低壓電氣作業", "1", 8, null));
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Years" && e.ErrorMessage.Contains("年數"));
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -179,10 +179,10 @@ public class LicenseMasterValidatorTests
     }
 
     [Fact]
-    public void Update_SmallCategoryMissingHours_IsInvalid()
+    public void Update_SmallCategoryMissingHours_IsValid()
     {
+        // Hours 不再必填
         var result = _update.Validate(new UpdateLicenseMasterRequest("1.1", "描述", "1", null, 2));
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Hours");
+        result.IsValid.Should().BeTrue();
     }
 }

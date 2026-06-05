@@ -263,11 +263,17 @@ async function openHeaderModal(mode, item) {
     const cats = cachedAllLicenses.filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
     cats.forEach(cat => {
         const $grp = $('<optgroup>').attr('label', `${cat.LicenseType} ${cat.Description}`);
-        $('<option></option>').val(cat.LicenseType).text(`${cat.LicenseType} ${cat.Description}`).appendTo($grp);
+        // '99'（其他）大類本身視同「其他」，選取時需填自定義名稱
+        const $catOpt = $('<option></option>').val(cat.LicenseType).text(`${cat.LicenseType} ${cat.Description}`);
+        if (cat.LicenseType === '99') $catOpt.attr('data-is-other', 'true');
+        $catOpt.appendTo($grp);
         cachedAllLicenses.filter(x => x.Category === cat.LicenseType).forEach(x => {
             $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($grp);
         });
-        $('<option></option>').val(cat.LicenseType).text(`其他（${cat.Description}）`).attr('data-is-other', 'true').appendTo($grp);
+        // '99' 本身即為"其他"大類，不需再加其他選項
+        if (cat.LicenseType !== '99') {
+            $('<option></option>').val(cat.LicenseType).text(`其他（${cat.Description}）`).attr('data-is-other', 'true').appendTo($grp);
+        }
         $grp.appendTo($licSel);
     });
 

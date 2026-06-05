@@ -36,24 +36,16 @@ public class CreateLicenseMasterValidator : AbstractValidator<CreateLicenseMaste
                 .Must(ValidatorHelpers.IsLicenseTypeCategory!)
                     .WithMessage("對應大類代碼必須為純整數格式")
                 .Must(ValidatorHelpers.IsSafe).WithMessage("對應大類含有不允許的字元");
-
-            RuleFor(x => x.Hours)
-                .NotNull().WithMessage("小類列的時數為必填")
-                .GreaterThan(0).WithMessage("時數必須大於 0");
-
-            RuleFor(x => x.Years)
-                .NotNull().WithMessage("小類列的年數為必填")
-                .GreaterThanOrEqualTo(1).WithMessage("年數必須 ≥ 1");
         });
 
-        // 大類列可選填 Hours/Years（若有則須為正數）
-        When(x => ValidatorHelpers.IsLicenseTypeCategory(x.LicenseType) && x.Hours.HasValue, () =>
+        // Hours/Years 選填；填寫時須符合範圍
+        When(x => x.Hours.HasValue, () =>
         {
             RuleFor(x => x.Hours)
                 .GreaterThan(0).WithMessage("時數必須大於 0");
         });
 
-        When(x => ValidatorHelpers.IsLicenseTypeCategory(x.LicenseType) && x.Years.HasValue, () =>
+        When(x => x.Years.HasValue, () =>
         {
             RuleFor(x => x.Years)
                 .GreaterThanOrEqualTo(1).WithMessage("年數必須 ≥ 1");
