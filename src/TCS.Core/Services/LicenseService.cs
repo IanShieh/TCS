@@ -44,7 +44,9 @@ public class LicenseService : ILicenseService
                               || l.LicenseType.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
-        var dtos = all.Select(l => l.ToDto()).ToList();
+        var dtos = all.Select(l => l.ToDto())
+                      .OrderBy(NaturalSortKey)
+                      .ToList();
         return PaginationHelper.Paginate(dtos, page, pageSize, advancedActive ? null : search);
     }
 
@@ -126,4 +128,9 @@ public class LicenseService : ILicenseService
 
     public Task DeletePlantRequirementAsync(string licenseType, string plant, CancellationToken ct = default) =>
         _repo.DeletePlantRequirementAsync(licenseType, plant, ct);
+
+    // 將 "1.10" → "000001.000010" 使字串排序等同自然數排序
+    private static string NaturalSortKey(LicenseMasterDto dto) =>
+        string.Join(".", dto.LicenseType.Split('.')
+            .Select(seg => int.TryParse(seg, out var n) ? n.ToString("D6") : seg));
 }

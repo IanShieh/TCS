@@ -8,7 +8,7 @@ const LICENSE_PLANT_API = (lt) => `${BASE}/api/licenses/${encodeURIComponent(lt)
 const INTEGER_REGEX = /^\d+$/;
 
 let currentPage = 1;
-const pageSize = 20;
+const pageSize = 10;
 
 let selectedEmployee = null;
 let cachedAllLicenses = null;    // all LicenseMasterDto[]

@@ -7,7 +7,7 @@ const INTEGER_REGEX = /^\d+$/;
 const DECIMAL_REGEX = /^\d+(\.\d+)+$/;
 
 let currentPage = 1;
-const pageSize = 20;
+const pageSize = 10;
 
 let cachedLicenses = [];        // 當前頁/篩選結果
 let cachedAllCategories = null; // 所有大類，僅初次載入時取
