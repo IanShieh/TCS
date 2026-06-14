@@ -286,6 +286,7 @@ async function openHeaderModal(mode, item) {
         $('#m-header-Hours').val('');
         $('#m-header-Years').val('');
         $('#m-Remark').val('');
+        $('#m-CustomName').val('');
         await loadPlantOptions('');
         updateEmployeeHint();
     } else {
@@ -322,6 +323,8 @@ function updateEmployeeHint() {
 }
 
 function updateLicenseSnapshotOnChange() {
+    // 其他:Hours/Years 由 updateCustomNameVisibility 清空並開放手填,不套用主檔快照
+    if ($('#m-LicenseType option:selected').data('isOther') === true) return;
     const lic = licenseMap[$('#m-LicenseType').val()];
     $('#m-header-Hours').val(lic && lic.Hours != null ? lic.Hours : '');
     $('#m-header-Years').val(lic && lic.Years != null ? lic.Years : '');
@@ -372,6 +375,12 @@ async function submitHeader(e) {
         }
         const hoursRaw = $('#m-header-Hours').val();
         const yearsRaw = $('#m-header-Years').val();
+        if (hoursRaw !== '' && !/^\d+$/.test(hoursRaw)) {
+            showModalError('#header-modal-error', '所需時數需為非負整數'); return;
+        }
+        if (yearsRaw !== '' && !/^\d+$/.test(yearsRaw)) {
+            showModalError('#header-modal-error', '年數需為非負整數'); return;
+        }
         body = {
             EmployeeId: employeeId,
             LicenseType: licenseType,   // = base 母類碼(99 或 X)
