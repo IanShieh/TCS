@@ -333,10 +333,14 @@ function updateCustomNameVisibility() {
         $('#m-CustomName-group').removeClass('d-none');
         $('#m-Remark-group').addClass('d-none');
         $('#m-CustomName').prop('required', true);
+        // 其他:Hours/Years 可手動填,預設清空
+        $('#m-header-Hours, #m-header-Years').prop('readonly', false).val('');
     } else {
         $('#m-CustomName-group').addClass('d-none');
         $('#m-Remark-group').removeClass('d-none');
         $('#m-CustomName').prop('required', false);
+        // 一般證照:自動帶入、唯讀
+        $('#m-header-Hours, #m-header-Years').prop('readonly', true);
     }
 }
 
@@ -356,17 +360,30 @@ async function submitHeader(e) {
             showModalError('#header-modal-error', '請選擇證照類別');
             return;
         }
-        if ($('#m-LicenseType option:selected').data('isOther') === true) {
-            const customName = $('#m-CustomName').val().trim();
-            if (!customName) {
-                showModalError('#header-modal-error', '請輸入自定義證照名稱');
-                return;
-            }
-            remark = customName;
-        }
     }
 
-    const body = { EmployeeId: employeeId, LicenseType: licenseType, Remark: remark, Plant: $('#m-Plant').val() || null };
+    const isOther = mode === 'create' && $('#m-LicenseType option:selected').data('isOther') === true;
+    let body;
+    if (isOther) {
+        const customName = $('#m-CustomName').val().trim();
+        if (!customName) {
+            showModalError('#header-modal-error', '請輸入自定義證照名稱');
+            return;
+        }
+        const hoursRaw = $('#m-header-Hours').val();
+        const yearsRaw = $('#m-header-Years').val();
+        body = {
+            EmployeeId: employeeId,
+            LicenseType: licenseType,   // = base 母類碼(99 或 X)
+            IsOther: true,
+            Remark: customName,
+            Plant: $('#m-Plant').val() || null,
+            Hours: hoursRaw !== '' ? parseInt(hoursRaw, 10) : null,
+            Years: yearsRaw !== '' ? parseInt(yearsRaw, 10) : null
+        };
+    } else {
+        body = { EmployeeId: employeeId, LicenseType: licenseType, Remark: remark, Plant: $('#m-Plant').val() || null };
+    }
     const url = mode === 'create'
         ? HEADER_API
         : `${HEADER_API}/${encodeURIComponent(employeeId)}/${encodeURIComponent(licenseType)}`;
