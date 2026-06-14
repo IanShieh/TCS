@@ -75,6 +75,36 @@ public class TrainingValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == "LicenseType" && e.ErrorMessage.Contains("格式"));
     }
 
+    [Fact]
+    public void Header_Other_MajorCategoryWithCustomName_IsValid()
+    {
+        var req = new CreateTrainingHeaderRequest("E001", "99", "自定義證照", null, IsOther: true);
+        _header.Validate(req).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Header_Other_MinorBaseCategory_IsValid()
+    {
+        var req = new CreateTrainingHeaderRequest("E001", "1", "自定義證照", null, IsOther: true);
+        _header.Validate(req).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Header_Other_MissingCustomName_IsInvalid()
+    {
+        var req = new CreateTrainingHeaderRequest("E001", "99", null, null, IsOther: true);
+        var result = _header.Validate(req);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Remark");
+    }
+
+    [Fact]
+    public void Header_NonOther_IntegerCategory_StillInvalid()
+    {
+        var req = new CreateTrainingHeaderRequest("E001", "1", null, null);
+        _header.Validate(req).IsValid.Should().BeFalse();
+    }
+
     // ── CreateTrainingDetailValidator ──────────────────────────────────────
 
     [Fact]
