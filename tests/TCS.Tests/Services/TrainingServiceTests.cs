@@ -60,6 +60,53 @@ public class TrainingServiceTests
                 new CreateTrainingHeaderRequest("E001", "9.9", null, null)));
     }
 
+    [Fact]
+    public async Task CreateHeader_Other_Major_GeneratesNextSequence()
+    {
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("99", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "99", Description = "其他", Hours = null, Years = null });
+
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.GetHeaderLicenseTypesByPrefixAsync("E001", "99", default))
+            .ReturnsAsync(new List<string> { "99.1", "99.2" });
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "99.3", default)).ReturnsAsync(false);
+        TrainingHeader? added = null;
+        trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default))
+            .Callback<TrainingHeader, CancellationToken>((h, _) => added = h)
+            .Returns(Task.CompletedTask);
+
+        var req = new CreateTrainingHeaderRequest("E001", "99", "我的自定義證照", null, IsOther: true, Hours: 10, Years: 3);
+        var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(req);
+
+        result.LicenseType.Should().Be("99.3");
+        result.Hours.Should().Be(10);
+        result.Years.Should().Be(3);
+        result.Remark.Should().Be("我的自定義證照");
+        added!.LicenseType.Should().Be("99.3");
+    }
+
+    [Fact]
+    public async Task CreateHeader_Other_Minor_GeneratesTwoDotCode_DefaultsNullHours()
+    {
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("1", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "1", Description = "電氣", Hours = null, Years = null });
+
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.GetHeaderLicenseTypesByPrefixAsync("E001", "1.0", default))
+            .ReturnsAsync(new List<string>());
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "1.0.1", default)).ReturnsAsync(false);
+        trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default)).Returns(Task.CompletedTask);
+
+        var req = new CreateTrainingHeaderRequest("E001", "1", "現場自訂", null, IsOther: true);
+        var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(req);
+
+        result.LicenseType.Should().Be("1.0.1");
+        result.Hours.Should().BeNull();
+        result.Years.Should().BeNull();
+    }
+
     // ── GetHeader ──────────────────────────────────────────────────────────
 
     [Fact]

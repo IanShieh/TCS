@@ -83,6 +83,9 @@ public class TrainingService : ITrainingService
 
     public async Task<TrainingHeaderDto> CreateHeaderAsync(CreateTrainingHeaderRequest req, CancellationToken ct = default)
     {
+        if (req.IsOther)
+            return await CreateOtherHeaderAsync(req, ct);
+
         if (await _repo.HeaderExistsAsync(req.EmployeeId, req.LicenseType, ct))
             throw new InvalidOperationException($"TrainingHeader ({req.EmployeeId},{req.LicenseType}) already exists.");
 
@@ -102,6 +105,36 @@ public class TrainingService : ITrainingService
 
         var emp = await _empRepo.GetByIdAsync(req.EmployeeId, ct);
         return header.ToDto(emp, license, new List<TrainingDetail>(), DateOnly.FromDateTime(DateTime.Today));
+    }
+
+    // 其他證照:以 base 母類碼產生每位員工各自的唯一代碼(99.{n} / X.0.{n}),
+    // 產生碼只寫入 TCSTA;Hours/Years 由使用者手動填(可空),自定義名稱存 Remark。
+    private async Task<TrainingHeaderDto> CreateOtherHeaderAsync(CreateTrainingHeaderRequest req, CancellationToken ct)
+    {
+        _ = await _licenseRepo.GetByIdAsync(req.LicenseType, ct)
+            ?? throw new KeyNotFoundException($"LicenseMaster '{req.LicenseType}' not found.");
+
+        var prefix = OtherLicenseCode.Prefix(req.LicenseType);
+        var existing = await _repo.GetHeaderLicenseTypesByPrefixAsync(req.EmployeeId, prefix, ct);
+        var newCode = OtherLicenseCode.Next(prefix, existing);
+
+        if (await _repo.HeaderExistsAsync(req.EmployeeId, newCode, ct))
+            throw new InvalidOperationException($"TrainingHeader ({req.EmployeeId},{newCode}) already exists.");
+
+        var header = new TrainingHeader
+        {
+            EmployeeId = req.EmployeeId,
+            LicenseType = newCode,
+            Hours = req.Hours,
+            Years = req.Years,
+            Remark = req.Remark,
+            Plant = req.Plant
+        };
+        await _repo.AddHeaderAsync(header, ct);
+
+        var emp = await _empRepo.GetByIdAsync(req.EmployeeId, ct);
+        // 產生碼無對應主檔,Description 留空(自定義名稱在 Remark 欄顯示)
+        return header.ToDto(emp, null, new List<TrainingDetail>(), DateOnly.FromDateTime(DateTime.Today));
     }
 
     public async Task<TrainingHeaderDto> UpdateHeaderAsync(UpdateTrainingHeaderRequest req, CancellationToken ct = default)
