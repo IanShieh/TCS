@@ -10,7 +10,7 @@ public class TrainingHeader : IAuditableEntity
 {
     public string EmployeeId { get; set; } = null!;
     public string LicenseType { get; set; } = null!;
-    public int Hours { get; set; }                  // 建立時從 LicenseMaster.Hours 帶入，唯讀
+    public int? Hours { get; set; }                 // 建立時從 LicenseMaster.Hours 帶入，唯讀；其他類可手動填或留空
     public int? Years { get; set; }                 // 建立時從 LicenseMaster.Years 帶入，唯讀
     public string? Remark { get; set; }
     public string? Plant { get; set; }

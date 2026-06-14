@@ -14,7 +14,7 @@ public class TrainingHeaderConfiguration : IEntityTypeConfiguration<TrainingHead
         builder.Property(e => e.EmployeeId).HasColumnName("TA001").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.LicenseType).HasColumnName("TA002").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);
         builder.Property(e => e.Plant).HasColumnName("TA003").HasMaxLength(6).IsFixedLength(true).IsUnicode(false).IsRequired(false);
-        builder.Property(e => e.Hours).HasColumnName("TA004").HasColumnType("int");
+        builder.Property(e => e.Hours).HasColumnName("TA004").HasColumnType("int").IsRequired(false);
         builder.Property(e => e.Remark).HasColumnName("TA005").HasMaxLength(200);
         builder.Property(e => e.Years).HasColumnName("TA006").HasColumnType("int").IsRequired(false);
         builder.Property(e => e.Creator).HasColumnName("CREATOR").HasMaxLength(10).IsFixedLength(false).IsUnicode(false);

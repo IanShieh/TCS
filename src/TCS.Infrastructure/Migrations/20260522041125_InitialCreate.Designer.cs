@@ -342,7 +342,7 @@ namespace TCS.Infrastructure.Migrations
                         .HasColumnType("decimal(3,0)")
                         .HasColumnName("FLAG");
 
-                    b.Property<int>("Hours")
+                    b.Property<int?>("Hours")
                         .HasColumnType("int")
                         .HasColumnName("TA004");
 

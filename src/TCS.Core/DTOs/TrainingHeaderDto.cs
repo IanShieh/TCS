@@ -10,7 +10,7 @@ public record TrainingHeaderDto(
     string? HireDate,
     string LicenseType,
     string? Description,
-    int Hours,
+    int? Hours,
     int? Years,
     string? Remark,
     string? Plant,

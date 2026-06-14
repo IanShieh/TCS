@@ -29,7 +29,8 @@ public class ExcelExportService : IExcelExportService
             ws.Cell(row, 4).Value = FormatHireDate(r.HireDate);
             ws.Cell(row, 5).Value = r.LicenseType;
             ws.Cell(row, 6).Value = r.Description ?? "";
-            ws.Cell(row, 7).Value = r.Hours;
+            if (r.Hours.HasValue) ws.Cell(row, 7).Value = r.Hours.Value;
+            else ws.Cell(row, 7).Value = "";
             ws.Cell(row, 8).Value = r.LatestRetrainDate?.ToString("yyyy-MM-dd") ?? "";
             ws.Cell(row, 9).Value = (double)r.RemainingHours;
             ws.Cell(row, 10).Value = r.NextReviewDate?.ToString("yyyy-MM-dd") ?? "";

@@ -73,10 +73,10 @@ public static class MappingExtensions
             foreach (var s in sessions)
             {
                 acc += s.Hours ?? 0m;
-                if (acc >= header.Hours)
+                if (header.Hours is int reqHours && reqHours > 0 && acc >= reqHours)
                 {
                     latestAnchor = DateOnly.FromDateTime(s.TrainingDate);
-                    acc -= header.Hours;        // 超額滾入下一週期（§6 規則2-A）
+                    acc -= reqHours;        // 超額滾入下一週期（§6 規則2-A）
                 }
             }
         }
@@ -87,7 +87,7 @@ public static class MappingExtensions
             : null;
 
         decimal accumulatedHours = acc;
-        decimal remainingHours = Math.Max(0m, header.Hours - acc);
+        decimal remainingHours = header.Hours is int req2 ? Math.Max(0m, req2 - acc) : 0m;
 
         OverallStatus status;
         if (nextReviewDate.HasValue && nextReviewDate.Value < today)

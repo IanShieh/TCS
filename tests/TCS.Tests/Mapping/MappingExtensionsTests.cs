@@ -10,6 +10,9 @@ public class MappingExtensionsTests
     private static TrainingHeader MakeHeader(int hours = 8, int? years = null) =>
         new() { EmployeeId = "E001", LicenseType = "1.1", Hours = hours, Years = years };
 
+    private static TrainingHeader MakeHeaderNullHours(int? years = 2) =>
+        new() { EmployeeId = "E001", LicenseType = "99.1", Hours = null, Years = years };
+
     private static LicenseMaster MakeLicense(int hours = 8, int years = 2) =>
         new() { LicenseType = "1.1", Description = "Test License", Hours = hours, Years = years };
 
@@ -208,6 +211,23 @@ public class MappingExtensionsTests
     {
         var dto = MakeHeader().ToDto(null, null, [], new DateOnly(2025, 1, 1));
         dto.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToDto_NullHours_RemainingZero_AnchorStaysAtAcquire()
+    {
+        var acquire = DateTime.Today.AddYears(-1);
+        var details = new List<TrainingDetail>
+        {
+            D(acquire, 1, 0m),
+            D(acquire.AddMonths(1), 2, 5m),   // 有回訓時數，但無門檻
+        };
+        var dto = MakeHeaderNullHours(years: 2).ToDto(null, null, details, DateOnly.FromDateTime(DateTime.Today));
+
+        dto.Hours.Should().BeNull();
+        dto.RemainingHours.Should().Be(0m);                                   // 無時數要求 → 不欠時數
+        dto.LatestAcquireDate.Should().Be(DateOnly.FromDateTime(acquire));    // anchor 不前進
+        dto.NextReviewDate.Should().Be(DateOnly.FromDateTime(acquire).AddYears(2)); // Years 仍生效
     }
 
     // ── LicenseMaster.ToDto ────────────────────────────────────────────────

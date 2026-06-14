@@ -93,7 +93,7 @@ public class TrainingService : ITrainingService
         {
             EmployeeId = req.EmployeeId,
             LicenseType = req.LicenseType,
-            Hours = license.Hours ?? 0,
+            Hours = license.Hours,
             Years = license.Years,
             Remark = req.Remark,
             Plant = req.Plant
