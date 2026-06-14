@@ -28,6 +28,12 @@ public class TrainingRepository : ITrainingRepository
     public Task<bool> HeaderExistsAsync(string employeeId, string licenseType, CancellationToken ct = default) =>
         _db.TrainingHeaders.AnyAsync(h => h.EmployeeId == employeeId && h.LicenseType == licenseType, ct);
 
+    public Task<List<string>> GetHeaderLicenseTypesByPrefixAsync(string employeeId, string prefix, CancellationToken ct = default) =>
+        _db.TrainingHeaders
+            .Where(h => h.EmployeeId == employeeId && h.LicenseType.StartsWith(prefix + "."))
+            .Select(h => h.LicenseType)
+            .ToListAsync(ct);
+
     public async Task AddHeaderAsync(TrainingHeader entity, CancellationToken ct = default)
     {
         _db.TrainingHeaders.Add(entity);

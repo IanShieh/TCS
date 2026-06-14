@@ -7,6 +7,7 @@ public interface ITrainingRepository
     Task<List<TrainingHeader>> GetHeadersAsync(string? employeeId, string? licenseType, CancellationToken ct = default);
     Task<TrainingHeader?> GetHeaderAsync(string employeeId, string licenseType, bool includeDetails = false, CancellationToken ct = default);
     Task<bool> HeaderExistsAsync(string employeeId, string licenseType, CancellationToken ct = default);
+    Task<List<string>> GetHeaderLicenseTypesByPrefixAsync(string employeeId, string prefix, CancellationToken ct = default);
     Task AddHeaderAsync(TrainingHeader entity, CancellationToken ct = default);
     Task UpdateHeaderAsync(TrainingHeader entity, CancellationToken ct = default);
     Task DeleteHeaderAsync(string employeeId, string licenseType, CancellationToken ct = default);
