@@ -406,9 +406,11 @@ async function submitHeader(e) {
     if (res.ok || res.status === 201) {
         headerModal.hide();
         Toast.success(mode === 'create' ? '受訓單頭已新增' : '受訓單頭已更新');
+        let savedLicenseType = licenseType;
+        try { const dto = await res.json(); if (dto && dto.LicenseType) savedLicenseType = dto.LicenseType; } catch { /* ignore */ }
         await loadHeaders();
-        // 新增/修改後回選在該筆表頭上
-        selectHeaderByKey(employeeId, licenseType);
+        // 新增/修改後回選在該筆表頭上（其他證照用伺服器回傳的 LicenseType，即含序號的代碼如 99.3）
+        selectHeaderByKey(employeeId, savedLicenseType);
         return;
     }
     showModalError('#header-modal-error', await readErrorMessage(res, '儲存失敗'));

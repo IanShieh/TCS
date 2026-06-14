@@ -12,17 +12,28 @@ public class TrainingRepository : ITrainingRepository
 
     public async Task<List<TrainingHeader>> GetHeadersAsync(string? employeeId, string? licenseType, CancellationToken ct = default)
     {
-        var q = _db.TrainingHeaders.Include(h => h.LicenseMasterNav).AsQueryable();
+        var q = _db.TrainingHeaders.AsQueryable();
         if (!string.IsNullOrEmpty(employeeId)) q = q.Where(h => h.EmployeeId == employeeId);
         if (!string.IsNullOrEmpty(licenseType)) q = q.Where(h => h.LicenseType == licenseType);
-        return await q.ToListAsync(ct);
+
+        // LEFT JOIN 證照主檔：其他證照(99.x / X.0.x)在主檔無對應列，需保留該列且 LicenseMasterNav 為 null
+        var rows = await q
+            .GroupJoin(_db.LicenseMasters, h => h.LicenseType, m => m.LicenseType, (h, ms) => new { h, ms })
+            .SelectMany(x => x.ms.DefaultIfEmpty(), (x, m) => new { x.h, m })
+            .ToListAsync(ct);
+
+        foreach (var r in rows) r.h.LicenseMasterNav = r.m;
+        return rows.Select(r => r.h).ToList();
     }
 
-    public Task<TrainingHeader?> GetHeaderAsync(string employeeId, string licenseType, bool includeDetails = false, CancellationToken ct = default)
+    public async Task<TrainingHeader?> GetHeaderAsync(string employeeId, string licenseType, bool includeDetails = false, CancellationToken ct = default)
     {
-        var q = _db.TrainingHeaders.Include(h => h.LicenseMasterNav).AsQueryable();
+        var q = _db.TrainingHeaders.AsQueryable();
         if (includeDetails) q = q.Include(h => h.Details);
-        return q.FirstOrDefaultAsync(h => h.EmployeeId == employeeId && h.LicenseType == licenseType, ct);
+        var header = await q.FirstOrDefaultAsync(h => h.EmployeeId == employeeId && h.LicenseType == licenseType, ct);
+        if (header is not null)
+            header.LicenseMasterNav = await _db.LicenseMasters.FirstOrDefaultAsync(m => m.LicenseType == licenseType, ct);
+        return header;
     }
 
     public Task<bool> HeaderExistsAsync(string employeeId, string licenseType, CancellationToken ct = default) =>
