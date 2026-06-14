@@ -61,6 +61,9 @@ public static class MappingExtensions
         DateOnly? latestRetrainDate = lastRetrain is not null
             ? DateOnly.FromDateTime(lastRetrain.TrainingDate) : null;
 
+        // 有效時數門檻：Hours 為 null 或 ≤ 0 時視為「無門檻」
+        int? hoursThreshold = header.Hours is int h && h > 0 ? h : null;
+
         // roll-forward 週期推導（§3）：只累加 type 2 時數；達標即前進 anchor，超額滾入（§6 規則2-A）
         DateOnly? latestAnchor = latestAcquireDate;
         decimal acc = 0m;
@@ -73,7 +76,7 @@ public static class MappingExtensions
             foreach (var s in sessions)
             {
                 acc += s.Hours ?? 0m;
-                if (header.Hours is int reqHours && reqHours > 0 && acc >= reqHours)
+                if (hoursThreshold is int reqHours && acc >= reqHours)
                 {
                     latestAnchor = DateOnly.FromDateTime(s.TrainingDate);
                     acc -= reqHours;        // 超額滾入下一週期（§6 規則2-A）
@@ -87,12 +90,12 @@ public static class MappingExtensions
             : null;
 
         decimal accumulatedHours = acc;
-        decimal remainingHours = header.Hours is int req2 ? Math.Max(0m, req2 - acc) : 0m;
+        decimal remainingHours = hoursThreshold is int req ? Math.Max(0m, req - acc) : 0m;
 
         OverallStatus status;
         if (nextReviewDate.HasValue && nextReviewDate.Value < today)
             status = OverallStatus.已過期;
-        else if (remainingHours == 0)
+        else if (header.Hours.HasValue && remainingHours == 0)
             status = OverallStatus.回訓完成;
         else if (nextReviewDate.HasValue && nextReviewDate.Value <= today.AddYears(1))
             status = OverallStatus.待回訓;

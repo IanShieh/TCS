@@ -216,18 +216,19 @@ public class MappingExtensionsTests
     [Fact]
     public void ToDto_NullHours_RemainingZero_AnchorStaysAtAcquire()
     {
-        var acquire = DateTime.Today.AddYears(-1);
+        var acquire = DateTime.Today.AddMonths(-1);
         var details = new List<TrainingDetail>
         {
             D(acquire, 1, 0m),
-            D(acquire.AddMonths(1), 2, 5m),   // 有回訓時數，但無門檻
+            D(acquire.AddDays(7), 2, 5m),   // 有回訓時數，但無門檻
         };
-        var dto = MakeHeaderNullHours(years: 2).ToDto(null, null, details, DateOnly.FromDateTime(DateTime.Today));
+        var dto = MakeHeaderNullHours(years: 5).ToDto(null, null, details, DateOnly.FromDateTime(DateTime.Today));
 
         dto.Hours.Should().BeNull();
         dto.RemainingHours.Should().Be(0m);                                   // 無時數要求 → 不欠時數
         dto.LatestAcquireDate.Should().Be(DateOnly.FromDateTime(acquire));    // anchor 不前進
-        dto.NextReviewDate.Should().Be(DateOnly.FromDateTime(acquire).AddYears(2)); // Years 仍生效
+        dto.NextReviewDate.Should().Be(DateOnly.FromDateTime(acquire).AddYears(5)); // Years 仍生效
+        dto.OverallStatus.Should().Be(OverallStatus.無);   // 無時數要求且回訓日尚遠
     }
 
     // ── LicenseMaster.ToDto ────────────────────────────────────────────────
