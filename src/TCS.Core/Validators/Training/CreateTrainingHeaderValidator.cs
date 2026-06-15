@@ -25,6 +25,12 @@ public class CreateTrainingHeaderValidator : AbstractValidator<CreateTrainingHea
                 .WithMessage("受訓單頭的證照類別必須為小類（含小數點）")
             .When(x => !x.IsOther);
 
+        // 其他:base 母類碼必須為整數大類（99 或母大類 X）；序號代碼由 Service 產生
+        RuleFor(x => x.LicenseType)
+            .Must(ValidatorHelpers.IsLicenseTypeCategory)
+                .WithMessage("其他證照的證照類別必須為整數大類")
+            .When(x => x.IsOther);
+
         // 其他:自定義名稱(存 Remark)必填
         RuleFor(x => x.Remark)
             .NotEmpty().WithMessage("其他證照需填寫自定義名稱")

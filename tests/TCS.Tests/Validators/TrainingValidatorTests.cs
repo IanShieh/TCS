@@ -90,6 +90,16 @@ public class TrainingValidatorTests
     }
 
     [Fact]
+    public void Header_Other_MinorCode_IsInvalid()
+    {
+        // 其他證照的 base 必須為整數大類（99 或母大類 X）；送小類碼（含小數點）應被擋
+        var req = new CreateTrainingHeaderRequest("E001", "1.1", "自定義證照", null, IsOther: true);
+        var result = _header.Validate(req);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "LicenseType");
+    }
+
+    [Fact]
     public void Header_Other_MissingCustomName_IsInvalid()
     {
         var req = new CreateTrainingHeaderRequest("E001", "99", null, null, IsOther: true);
