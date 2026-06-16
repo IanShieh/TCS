@@ -90,14 +90,49 @@ function renderTable(items) {
 
 function renderPagination(totalPages, page) {
     const $ul = $('#pagination').empty();
-    for (let i = 1; i <= totalPages; i++) {
+    if (totalPages <= 1) return;
+
+    const WINDOW = 2; // 當前頁前後各顯示幾頁
+    const go = (i) => { if (i !== page) { currentPage = i; loadHeaders(); } };
+
+    const addPage = (i) => {
         const $li = $('<li></li>').addClass('page-item' + (i === page ? ' active' : ''));
         $('<a class="page-link" href="#"></a>')
             .text(i)
-            .on('click', (e) => { e.preventDefault(); currentPage = i; loadHeaders(); })
+            .on('click', (e) => { e.preventDefault(); go(i); })
             .appendTo($li);
         $ul.append($li);
+    };
+    const addNav = (label, target, disabled) => {
+        const $li = $('<li></li>').addClass('page-item' + (disabled ? ' disabled' : ''));
+        $('<a class="page-link" href="#"></a>')
+            .html(label)
+            .on('click', (e) => { e.preventDefault(); if (!disabled) go(target); })
+            .appendTo($li);
+        $ul.append($li);
+    };
+    const addEllipsis = () => {
+        $ul.append($('<li class="page-item disabled"></li>')
+            .append($('<span class="page-link"></span>').text('…')));
+    };
+
+    addNav('&laquo;', 1, page === 1);          // 最前頁
+    addNav('&lsaquo;', page - 1, page === 1);  // 上一頁
+
+    const start = Math.max(1, page - WINDOW);
+    const end = Math.min(totalPages, page + WINDOW);
+    if (start > 1) {
+        addPage(1);
+        if (start > 2) addEllipsis();
     }
+    for (let i = start; i <= end; i++) addPage(i);
+    if (end < totalPages) {
+        if (end < totalPages - 1) addEllipsis();
+        addPage(totalPages);
+    }
+
+    addNav('&rsaquo;', page + 1, page === totalPages);  // 下一頁
+    addNav('&raquo;', totalPages, page === totalPages);  // 最後頁
 }
 
 // ---------- 選列 ----------
