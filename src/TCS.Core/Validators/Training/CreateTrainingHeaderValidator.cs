@@ -19,12 +19,6 @@ public class CreateTrainingHeaderValidator : AbstractValidator<CreateTrainingHea
             .Must(ValidatorHelpers.IsValidLicenseTypeFormat)
                 .WithMessage("證照類別代碼格式不正確");
 
-        // 非其他:單頭只能對應小類（§9）
-        RuleFor(x => x.LicenseType)
-            .Must(lt => !ValidatorHelpers.IsLicenseTypeCategory(lt))
-                .WithMessage("受訓單頭的證照類別必須為小類（含小數點）")
-            .When(x => !x.IsOther);
-
         // 其他:base 母類碼必須為整數大類（99 或母大類 X）；序號代碼由 Service 產生
         RuleFor(x => x.LicenseType)
             .Must(ValidatorHelpers.IsLicenseTypeCategory)

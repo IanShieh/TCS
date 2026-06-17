@@ -28,11 +28,11 @@ public class TrainingValidatorTests
     }
 
     [Fact]
-    public void Header_LargeCategoryLicenseType_IsInvalid()
+    public void Header_NonOther_IntegerCategory_IsNowValidFormat()
     {
+        // 語意改由 Service 把關;validator 層整數大類現為格式有效
         var result = _header.Validate(new CreateTrainingHeaderRequest("E001", "1", null, null));
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "LicenseType" && e.ErrorMessage.Contains("小類"));
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -108,12 +108,7 @@ public class TrainingValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == "Remark");
     }
 
-    [Fact]
-    public void Header_NonOther_IntegerCategory_StillInvalid()
-    {
-        var req = new CreateTrainingHeaderRequest("E001", "1", null, null);
-        _header.Validate(req).IsValid.Should().BeFalse();
-    }
+    // （刪除原 Header_NonOther_IntegerCategory_StillInvalid，整數大類於 validator 不再被擋）
 
     // ── CreateTrainingDetailValidator ──────────────────────────────────────
 
