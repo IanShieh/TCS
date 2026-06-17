@@ -43,6 +43,9 @@ public class LicenseRepository : ILicenseRepository
     public Task<bool> HasTrainingHeadersAsync(string licenseType, CancellationToken ct = default) =>
         _db.TrainingHeaders.AnyAsync(h => h.LicenseType == licenseType, ct);
 
+    public Task<bool> HasChildLicensesAsync(string licenseType, CancellationToken ct = default) =>
+        _db.LicenseMasters.AnyAsync(l => l.Category == licenseType, ct);
+
     public Task<List<LicensePlantRequirement>> GetPlantRequirementsAsync(string licenseType, CancellationToken ct = default) =>
         _db.LicensePlantRequirements.Where(r => r.LicenseType == licenseType).ToListAsync(ct);
 

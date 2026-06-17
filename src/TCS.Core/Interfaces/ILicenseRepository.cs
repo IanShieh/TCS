@@ -11,6 +11,7 @@ public interface ILicenseRepository
     Task UpdateAsync(LicenseMaster entity, CancellationToken ct = default);
     Task DeleteAsync(string licenseType, CancellationToken ct = default);
     Task<bool> HasTrainingHeadersAsync(string licenseType, CancellationToken ct = default);
+    Task<bool> HasChildLicensesAsync(string licenseType, CancellationToken ct = default);
 
     Task<List<LicensePlantRequirement>> GetPlantRequirementsAsync(string licenseType, CancellationToken ct = default);
     Task<LicensePlantRequirement?> GetPlantRequirementAsync(string licenseType, string plant, CancellationToken ct = default);
