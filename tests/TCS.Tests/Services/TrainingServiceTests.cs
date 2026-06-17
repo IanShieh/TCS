@@ -61,6 +61,66 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task CreateHeader_StandaloneCategory_NoChildren_Succeeds()
+    {
+        // 無小類大類（HasChildLicensesAsync 回 false）、IsOther=false → 成功，Hours/Years 帶主檔
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("5", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "5", Description = "獨立真證照", Hours = 8, Years = 1 });
+        licenseRepo.Setup(r => r.HasChildLicensesAsync("5", default)).ReturnsAsync(false);
+
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "5", default)).ReturnsAsync(false);
+        TrainingHeader? added = null;
+        trainingRepo.Setup(r => r.AddHeaderAsync(It.IsAny<TrainingHeader>(), default))
+            .Callback<TrainingHeader, CancellationToken>((h, _) => added = h)
+            .Returns(Task.CompletedTask);
+
+        var result = await BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
+            new CreateTrainingHeaderRequest("E001", "5", null, null));
+
+        result.LicenseType.Should().Be("5");
+        result.Hours.Should().Be(8);
+        result.Years.Should().Be(1);
+        added!.LicenseType.Should().Be("5");
+    }
+
+    [Fact]
+    public async Task CreateHeader_CategoryWithChildren_ThrowsInvalidOperation()
+    {
+        // 有小類大類（HasChildLicensesAsync 回 true）→ 丟 InvalidOperationException（含「小類」）
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("1", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "1", Description = "電氣大類" });
+        licenseRepo.Setup(r => r.HasChildLicensesAsync("1", default)).ReturnsAsync(true);
+
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "1", default)).ReturnsAsync(false);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
+                new CreateTrainingHeaderRequest("E001", "1", null, null)));
+        ex.Message.Should().Contain("小類");
+    }
+
+    [Fact]
+    public async Task CreateHeader_ReservedCode99_NonOther_ThrowsInvalidOperation()
+    {
+        // LicenseType="99"、IsOther=false → 丟 InvalidOperationException（含「其他」）
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("99", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "99", Description = "其他" });
+
+        var trainingRepo = new Mock<ITrainingRepository>();
+        trainingRepo.Setup(r => r.HeaderExistsAsync("E001", "99", default)).ReturnsAsync(false);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            BuildSvc(trainingRepo.Object, licenseRepo.Object).CreateHeaderAsync(
+                new CreateTrainingHeaderRequest("E001", "99", null, null)));
+        ex.Message.Should().Contain("其他");
+    }
+
+    [Fact]
     public async Task CreateHeader_Other_Major_GeneratesNextSequence()
     {
         var licenseRepo = new Mock<ILicenseRepository>();

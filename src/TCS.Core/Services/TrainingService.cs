@@ -5,6 +5,7 @@ using TCS.Core.Entities;
 using TCS.Core.Helpers;
 using TCS.Core.Interfaces;
 using TCS.Core.Mapping;
+using TCS.Core.Validators;
 
 namespace TCS.Core.Services;
 
@@ -91,6 +92,15 @@ public class TrainingService : ITrainingService
 
         var license = await _licenseRepo.GetByIdAsync(req.LicenseType, ct)
             ?? throw new KeyNotFoundException($"LicenseMaster '{req.LicenseType}' not found.");
+
+        // 純整數大類:僅「非 99 且底下無小類」可直接作為受訓對象（語意閘，validator 不查 DB）
+        if (ValidatorHelpers.IsLicenseTypeCategory(req.LicenseType))
+        {
+            if (req.LicenseType == "99")
+                throw new InvalidOperationException("「其他」大類(99)不可直接選取,請改用其他證照流程。");
+            if (await _licenseRepo.HasChildLicensesAsync(req.LicenseType, ct))
+                throw new InvalidOperationException($"大類 {req.LicenseType} 底下尚有小類,不可直接作為受訓對象,請選擇小類。");
+        }
 
         var header = new TrainingHeader
         {
