@@ -371,4 +371,184 @@ public class TrainingServiceTests
         dto.TrainingType.Should().Be(2);   // type 鎖定，忽略請求的 1
         dto.Hours.Should().Be(6m);         // hours 仍更新
     }
+
+    // ── GetHeaders：排序 / 進階搜尋 ──────────────────────────────────────────
+
+    private static TrainingHeader H(string employeeId, string licenseType, string? plant = null) =>
+        new() { EmployeeId = employeeId, LicenseType = licenseType, Hours = 8, Plant = plant };
+
+    private static Mock<ITrainingRepository> HeadersRepo(params TrainingHeader[] headers)
+    {
+        var repo = new Mock<ITrainingRepository>();
+        repo.Setup(r => r.GetHeadersAsync(It.IsAny<string?>(), It.IsAny<string?>(), default))
+            .ReturnsAsync(headers.ToList());
+        repo.Setup(r => r.GetDetailsAsync(It.IsAny<string>(), It.IsAny<string>(), default))
+            .ReturnsAsync(new List<TrainingDetail>());
+        return repo;
+    }
+
+    [Fact]
+    public async Task GetHeaders_DefaultSort_LicenseTypeThenEmployeeId()
+    {
+        // 未指定排序 → 預設證照升冪，同證照以員編為次要排序
+        var repo = HeadersRepo(H("E002", "2.2"), H("E002", "1.1"), H("E001", "1.1"));
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10);
+        result.Items.Select(i => (i.LicenseType, i.EmployeeId))
+            .Should().Equal(("1.1", "E001"), ("1.1", "E002"), ("2.2", "E002"));
+    }
+
+    [Fact]
+    public async Task GetHeaders_DefaultSort_LicenseTypeIsNaturalOrder()
+    {
+        // 證照排序須為數值自然排序（與證照管理頁 NaturalSortKey 一致），非字串排序
+        // 字串排序會錯排成 1.1, 11.2, 16.3, 20.1, 3.2
+        var repo = HeadersRepo(
+            H("E001", "20.1"), H("E001", "3.2"), H("E001", "11.2"), H("E001", "1.1"), H("E001", "16.3"));
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10);
+        result.Items.Select(i => i.LicenseType)
+            .Should().Equal("1.1", "3.2", "11.2", "16.3", "20.1");
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByLicenseType_Descending_NaturalOrder()
+    {
+        var repo = HeadersRepo(H("E001", "3.2"), H("E001", "11.2"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "LicenseType", SortDesc = true };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => i.LicenseType).Should().Equal("11.2", "3.2", "1.1");
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByEmployeeId_SecondaryLicenseTypeIsNaturalOrder()
+    {
+        var repo = HeadersRepo(H("E001", "11.2"), H("E001", "3.2"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "EmployeeId" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => i.LicenseType).Should().Equal("1.1", "3.2", "11.2");
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByEmployeeId_Ascending_ThenByLicenseType()
+    {
+        var repo = HeadersRepo(H("E002", "1.1"), H("E001", "2.2"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "EmployeeId" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => (i.EmployeeId, i.LicenseType))
+            .Should().Equal(("E001", "1.1"), ("E001", "2.2"), ("E002", "1.1"));
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByEmployeeId_Descending_SecondaryStaysAscending()
+    {
+        var repo = HeadersRepo(H("E001", "2.2"), H("E002", "1.1"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "EmployeeId", SortDesc = true };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => (i.EmployeeId, i.LicenseType))
+            .Should().Equal(("E002", "1.1"), ("E001", "1.1"), ("E001", "2.2"));
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByLicenseType_Ascending_ThenByEmployeeId()
+    {
+        var repo = HeadersRepo(H("E002", "1.1"), H("E001", "2.2"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "LicenseType" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => (i.LicenseType, i.EmployeeId))
+            .Should().Equal(("1.1", "E001"), ("1.1", "E002"), ("2.2", "E001"));
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortByLicenseType_Descending_SecondaryStaysAscending()
+    {
+        var repo = HeadersRepo(H("E002", "1.1"), H("E001", "2.2"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "LicenseType", SortDesc = true };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => (i.LicenseType, i.EmployeeId))
+            .Should().Equal(("2.2", "E001"), ("1.1", "E001"), ("1.1", "E002"));
+    }
+
+    [Fact]
+    public async Task GetHeaders_Sort_AppliedBeforePagination()
+    {
+        // 排序須套用於全清單而非當頁：3 筆、每頁 2 筆，第 2 頁應是排序後的最後一筆
+        var repo = HeadersRepo(H("E003", "1.1"), H("E001", "1.1"), H("E002", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "EmployeeId" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 2, 2, query);
+        result.Items.Select(i => i.EmployeeId).Should().Equal("E003");
+    }
+
+    [Fact]
+    public async Task GetHeaders_SortBy_UnknownColumn_FallsBackToDefaultSort()
+    {
+        var repo = HeadersRepo(H("E002", "2.2"), H("E002", "1.1"), H("E001", "1.1"));
+        var query = new TrainingSearchQuery { SortBy = "Remark" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => (i.LicenseType, i.EmployeeId))
+            .Should().Equal(("1.1", "E001"), ("1.1", "E002"), ("2.2", "E002"));
+    }
+
+    [Fact]
+    public void TrainingSearchQuery_SortByOnly_DoesNotActivateAdvanced()
+    {
+        new TrainingSearchQuery { SortBy = "EmployeeId", SortDesc = true }
+            .IsAdvancedActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void TrainingSearchQuery_Plant_ActivatesAdvanced()
+    {
+        new TrainingSearchQuery { Plant = "A1" }.IsAdvancedActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetHeaders_Advanced_PlantFilter_ReturnsMatchingOnly()
+    {
+        var repo = HeadersRepo(H("E001", "1.1", "A1"), H("E002", "1.1", "B2"), H("E003", "1.1", null));
+        var query = new TrainingSearchQuery { Plant = "A1" };
+
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => i.EmployeeId).Should().Equal("E001");
+    }
+
+    [Fact]
+    public async Task GetHeaders_Advanced_DepartmentFilter_IgnoresStoredWhitespace()
+    {
+        // DB 部門資料含尾端空白時仍應被「乾淨值」條件篩中（T4）
+        var empRepo = new Mock<IEmployeeRepository>();
+        empRepo.Setup(r => r.GetByIdAsync("E001", default))
+            .ReturnsAsync(new Employee { EmployeeId = "E001", Name = "甲", Department = "製造部 " });
+        empRepo.Setup(r => r.GetByIdAsync("E002", default))
+            .ReturnsAsync(new Employee { EmployeeId = "E002", Name = "乙", Department = "品保部" });
+
+        var repo = HeadersRepo(H("E001", "1.1"), H("E002", "1.1"));
+        var query = new TrainingSearchQuery { Department = "製造部" };
+
+        var result = await BuildSvc(repo.Object, empRepo: empRepo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => i.EmployeeId).Should().Equal("E001");
+    }
+
+    [Fact]
+    public async Task GetHeaders_Advanced_DepartmentFilter_IgnoresQueryWhitespace()
+    {
+        // 查詢值含空白也應可比對（T4 防禦性 trim）
+        var empRepo = new Mock<IEmployeeRepository>();
+        empRepo.Setup(r => r.GetByIdAsync("E001", default))
+            .ReturnsAsync(new Employee { EmployeeId = "E001", Name = "甲", Department = "製造部" });
+
+        var repo = HeadersRepo(H("E001", "1.1"));
+        var query = new TrainingSearchQuery { Department = " 製造部 " };
+
+        var result = await BuildSvc(repo.Object, empRepo: empRepo.Object).GetHeadersAsync(null, null, 1, 10, query);
+        result.Items.Select(i => i.EmployeeId).Should().Equal("E001");
+    }
 }

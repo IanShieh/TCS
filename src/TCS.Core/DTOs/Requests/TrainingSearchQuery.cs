@@ -10,6 +10,8 @@ public class TrainingSearchQuery
     public string? NameContains { get; set; }
     public string? Department { get; set; }
     public string? LicenseType { get; set; }
+    /// <summary>代表廠別（完全比對）</summary>
+    public string? Plant { get; set; }
     /// <summary>僅顯示已過期（OverallStatus == 已過期）</summary>
     public bool? ExpiredOnly { get; set; }
     /// <summary>未達時數 &gt; 0</summary>
@@ -17,11 +19,16 @@ public class TrainingSearchQuery
     public DateOnly? NextReviewFrom { get; set; }
     public DateOnly? NextReviewTo { get; set; }
 
+    /// <summary>排序欄位（白名單：EmployeeId / LicenseType；其餘忽略）。不計入 IsAdvancedActive</summary>
+    public string? SortBy { get; set; }
+    public bool SortDesc { get; set; }
+
     public bool IsAdvancedActive =>
         !string.IsNullOrWhiteSpace(EmployeeId)
         || !string.IsNullOrWhiteSpace(NameContains)
         || !string.IsNullOrWhiteSpace(Department)
         || !string.IsNullOrWhiteSpace(LicenseType)
+        || !string.IsNullOrWhiteSpace(Plant)
         || ExpiredOnly == true
         || UnmetHoursOnly == true
         || NextReviewFrom is not null

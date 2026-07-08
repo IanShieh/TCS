@@ -252,4 +252,21 @@ public class MappingExtensionsTests
         dto.Years.Should().Be(2);
         dto.Category.Should().Be("1");
     }
+
+    // ── Department trim（T4：DB 資料含前後空白時 DTO 應輸出乾淨值） ─────────
+
+    [Fact]
+    public void EmployeeToDto_TrimsDepartment()
+    {
+        var emp = new Employee { EmployeeId = "E001", Name = "甲", Department = " 製造部 " };
+        emp.ToDto().Department.Should().Be("製造部");
+    }
+
+    [Fact]
+    public void TrainingHeaderToDto_TrimsEmployeeDepartment()
+    {
+        var emp = new Employee { EmployeeId = "E001", Name = "甲", Department = "製造部 " };
+        var dto = MakeHeader().ToDto(emp, MakeLicense(), [], new DateOnly(2025, 6, 1));
+        dto.Department.Should().Be("製造部");
+    }
 }

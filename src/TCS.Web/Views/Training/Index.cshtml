@@ -31,6 +31,10 @@
                     <label class="form-label small">證照類別</label>
                     <select id="adv-LicenseType" class="form-select form-select-sm"></select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label small">代表廠別</label>
+                    <select id="adv-Plant" class="form-select form-select-sm"></select>
+                </div>
                 <div class="col-md-6">
                     <label class="form-label small">下次回訓區間</label>
                     <div class="d-flex gap-1">
@@ -70,11 +74,11 @@
                 <table class="table table-bordered table-hover mb-0" id="training-table">
                     <thead class="table-light">
                         <tr>
-                            <th>員編</th>
+                            <th class="th-sortable" data-sort="EmployeeId">員編 <span class="sort-indicator"></span></th>
                             <th>姓名</th>
                             <th>部門</th>
                             <th>到職日</th>
-                            <th>證照</th>
+                            <th class="th-sortable" data-sort="LicenseType">證照 <span class="sort-indicator"></span></th>
                             <th>描述</th>
                             <th>應訓時數</th>
                             <th>最新回訓日</th>
@@ -251,6 +255,16 @@
     <style>
         #training-table tbody tr,
         #detail-table tbody tr { cursor: pointer; }
+
+        #training-table thead th.th-sortable {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        #training-table thead th.th-sortable .sort-indicator {
+            font-size: .7em;
+            color: #0d6efd;
+        }
 
         #training-table tbody tr.row-selected > td,
         #detail-table tbody tr.row-selected > td {

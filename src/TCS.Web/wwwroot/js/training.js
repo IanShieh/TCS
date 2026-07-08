@@ -4,11 +4,15 @@ const DETAIL_API = BASE + '/api/training-details';
 const EMPLOYEE_API = BASE + '/api/employees';
 const LICENSE_API = BASE + '/api/licenses';
 const LICENSE_PLANT_API = (lt) => `${BASE}/api/licenses/${encodeURIComponent(lt)}/plants`;
+const PLANT_API = BASE + '/api/plants';
 
 const INTEGER_REGEX = /^\d+$/;
 
 let currentPage = 1;
 const pageSize = 10;
+
+let sortBy = 'LicenseType';   // 排序主鍵（EmployeeId / LicenseType），預設證照；另一欄為次要排序
+let sortDesc = false;
 
 let selectedEmployee = null;
 let cachedAllLicenses = null;    // all LicenseMasterDto[]
@@ -29,6 +33,7 @@ function buildAdvancedQuery() {
         NameContains: $('#adv-NameContains').val().trim(),
         Department: $('#adv-Department').val(),
         LicenseType: $('#adv-LicenseType').val(),
+        Plant: $('#adv-Plant').val(),
         ExpiredOnly: $('#adv-ExpiredOnly').is(':checked'),
         UnmetHoursOnly: $('#adv-UnmetHoursOnly').is(':checked'),
         NextReviewFrom: $('#adv-NextReviewFrom').val(),
@@ -36,7 +41,7 @@ function buildAdvancedQuery() {
     };
     const empty =
         !q.EmployeeId && !q.NameContains && !q.Department && !q.LicenseType
-        && !q.ExpiredOnly && !q.UnmetHoursOnly
+        && !q.Plant && !q.ExpiredOnly && !q.UnmetHoursOnly
         && !q.NextReviewFrom && !q.NextReviewTo;
     return empty ? null : q;
 }
@@ -52,6 +57,10 @@ async function loadHeaders() {
     } else {
         const search = $('#search').val();
         if (search) params.set('query.Search', search);
+    }
+    if (sortBy) {
+        params.set('query.SortBy', sortBy);
+        if (sortDesc) params.set('query.SortDesc', 'true');
     }
     const res = await fetch(`${HEADER_API}?${params}`);
     if (!res.ok) { Toast.error(await readErrorMessage(res, '載入失敗')); return; }
@@ -647,19 +656,36 @@ function showModalError(selector, msg) {
 async function populateAdvancedDropdowns() {
     await ensureAllLicensesLoaded();
 
-    // 部門：直接呼叫 API 取得員工清單後去重排序
+    // 部門：直接呼叫 API 取得員工清單後去重排序（trim 防止含空白的同名部門重複出現）
     const empResp = await fetch(EMPLOYEE_API);
     const employees = empResp.ok ? await empResp.json() : [];
-    const depts = [...new Set(employees.map(e => e.Department).filter(Boolean))].sort();
+    const depts = [...new Set(employees.map(e => (e.Department ?? '').trim()).filter(Boolean))].sort();
     const $dept = $('#adv-Department').empty();
     $('<option></option>').val('').text('（不限）').appendTo($dept);
     depts.forEach(d => $('<option></option>').val(d).text(d).appendTo($dept));
+
+    // 代表廠別：廠別主檔
+    const plantResp = await fetch(PLANT_API);
+    const plants = plantResp.ok ? await plantResp.json() : [];
+    const $plant = $('#adv-Plant').empty();
+    $('<option></option>').val('').text('（不限）').appendTo($plant);
+    plants.forEach(p => {
+        const label = p.PlantName ? `${p.PlantCode} ${p.PlantName}` : p.PlantCode;
+        $('<option></option>').val(p.PlantCode).text(label).appendTo($plant);
+    });
 
     // 證照（僅小類）
     const $lic = $('#adv-LicenseType').empty();
     $('<option></option>').val('').text('（不限）').appendTo($lic);
     (cachedMinorLicenses || []).forEach(x => {
         $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($lic);
+    });
+}
+
+function updateSortIndicators() {
+    $('#training-table thead th.th-sortable').each(function () {
+        const active = $(this).data('sort') === sortBy;
+        $(this).find('.sort-indicator').text(active ? (sortDesc ? '▼' : '▲') : '');
     });
 }
 
@@ -685,6 +711,20 @@ $(function () {
     });
 
     populateAdvancedDropdowns();
+
+    // 表頭排序：同欄再點切換升/降冪，換欄回到升冪
+    $('#training-table thead th.th-sortable').on('click', function () {
+        const col = $(this).data('sort');
+        if (sortBy === col) {
+            sortDesc = !sortDesc;
+        } else {
+            sortBy = col;
+            sortDesc = false;
+        }
+        updateSortIndicators();
+        currentPage = 1;
+        loadHeaders();
+    });
 
     $('#btn-search').on('click', () => {
         clearAdvancedFields();
@@ -713,6 +753,8 @@ $(function () {
     $('#header-form').on('submit', submitHeader);
     $('#detail-form').on('submit', submitDetail);
     $('input[name="m-TrainingType"]').on('change', syncHoursRequired);
+
+    updateSortIndicators();   // 顯示預設排序（證照 ▲）
 
     let _empSearchTimer = null;
     $('#btn-pick-employee').on('click', function () {

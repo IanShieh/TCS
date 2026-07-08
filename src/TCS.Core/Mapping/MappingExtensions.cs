@@ -105,7 +105,7 @@ public static class MappingExtensions
         return new TrainingHeaderDto(
             header.EmployeeId,
             employee?.Name,
-            employee?.Department,
+            employee?.Department?.Trim(),
             employee?.HireDate,
             header.LicenseType,
             licenseMaster?.Description,
@@ -124,7 +124,7 @@ public static class MappingExtensions
     // ── Employee / Plant ───────────────────────────────────────────────────
 
     public static EmployeeDto ToDto(this Employee e) =>
-        new(e.EmployeeId, e.Name, e.Department, e.HireDate);
+        new(e.EmployeeId, e.Name, e.Department?.Trim(), e.HireDate);
 
     public static PlantDto ToDto(this Plant p) =>
         new(p.PlantCode, p.PlantName);

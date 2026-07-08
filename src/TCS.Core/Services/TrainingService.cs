@@ -51,7 +51,9 @@ public class TrainingService : ITrainingService
             if (!string.IsNullOrWhiteSpace(query!.NameContains))
                 filtered = filtered.Where(d => d.EmployeeName != null && d.EmployeeName.Contains(query.NameContains, StringComparison.OrdinalIgnoreCase));
             if (!string.IsNullOrWhiteSpace(query.Department))
-                filtered = filtered.Where(d => d.Department == query.Department);
+                filtered = filtered.Where(d => d.Department != null && d.Department.Trim() == query.Department.Trim());
+            if (!string.IsNullOrWhiteSpace(query.Plant))
+                filtered = filtered.Where(d => d.Plant == query.Plant);
             if (query.ExpiredOnly == true)
                 filtered = filtered.Where(d => d.OverallStatus == OverallStatus.已過期);
             if (query.UnmetHoursOnly == true)
@@ -69,6 +71,24 @@ public class TrainingService : ITrainingService
                 || (d.EmployeeName?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true)
                 || (d.LicenseType?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true)
                 || (d.Description?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true));
+        }
+
+        // 排序須於分頁前套用。預設證照升冪；主排序切換時另一欄固定為次要排序（升冪）。
+        // 證照採自然排序（與證照管理頁一致）；非白名單 SortBy 一律回落預設排序。
+        var cmp = StringComparer.OrdinalIgnoreCase;
+        if (query?.SortBy == "EmployeeId")
+        {
+            var primary = query.SortDesc
+                ? filtered.OrderByDescending(d => d.EmployeeId, cmp)
+                : filtered.OrderBy(d => d.EmployeeId, cmp);
+            filtered = primary.ThenBy(d => LicenseTypeSort.NaturalKey(d.LicenseType), cmp);
+        }
+        else
+        {
+            var primary = query?.SortBy == "LicenseType" && query.SortDesc
+                ? filtered.OrderByDescending(d => LicenseTypeSort.NaturalKey(d.LicenseType), cmp)
+                : filtered.OrderBy(d => LicenseTypeSort.NaturalKey(d.LicenseType), cmp);
+            filtered = primary.ThenBy(d => d.EmployeeId, cmp);
         }
 
         return PaginationHelper.Paginate(filtered.ToList(), page, pageSize);
