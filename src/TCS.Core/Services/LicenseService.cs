@@ -100,6 +100,14 @@ public class LicenseService : ILicenseService
         return reqs.Select(r => r.ToDto(plantMap.GetValueOrDefault(r.Plant.Trim()))).ToList();
     }
 
+    public async Task<List<PlantRequirementOverviewDto>> GetRequirementsByPlantAsync(string plant, CancellationToken ct = default)
+    {
+        var reqs = await _repo.GetPlantRequirementsByPlantAsync(plant, ct);
+        return reqs.Select(r => r.ToOverviewDto())
+                   .OrderBy(d => LicenseTypeSort.NaturalKey(d.LicenseType))
+                   .ToList();
+    }
+
     public async Task<LicensePlantRequirementDto> CreatePlantRequirementAsync(CreateLicensePlantRequirementRequest req, CancellationToken ct = default)
     {
         var existing = await _repo.GetPlantRequirementAsync(req.LicenseType, req.Plant, ct);

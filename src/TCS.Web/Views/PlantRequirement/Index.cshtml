@@ -1,0 +1,76 @@
+@{
+    ViewData["Title"] = "廠別需求";
+}
+<h2>廠別需求</h2>
+<div id="plant-req-app">
+    <div class="mb-3 d-flex gap-2 align-items-center">
+        <label for="plant-select" class="form-label mb-0">廠別</label>
+        <select id="plant-select" class="form-select w-25"></select>
+    </div>
+
+    <div class="mb-2 d-flex gap-2">
+        <button id="btn-add" class="btn btn-primary" disabled>新增</button>
+        <button id="btn-edit" class="btn btn-warning" disabled>修改</button>
+        <button id="btn-delete" class="btn btn-danger" disabled>刪除</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">證照需求 <small class="text-muted ms-1" id="req-plant-label"></small></div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover mb-0" id="req-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>證照類別</th>
+                        <th>類別名稱</th>
+                        <th>需求數</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" class="text-center text-muted">請先選擇廠別</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Requirement Modal -->
+<div class="modal fade" id="req-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="req-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="req-modal-title">新增證照需求</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="req-modal-error" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">證照 <span class="text-danger">*</span></label>
+                        <select id="m-LicenseType" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">需求數 <span class="text-danger">*</span></label>
+                        <input type="number" id="m-RequiredCount" class="form-control" min="1" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        #req-table tbody tr { cursor: pointer; }
+        #req-table tbody tr.row-selected > td {
+            background-color: #cfe2ff;
+        }
+        #req-table tbody tr.row-selected > td:first-child {
+            border-left: 3px solid #0d6efd;
+        }
+    </style>
+    <script src="~/js/plantRequirement.js" asp-append-version="true"></script>
+}

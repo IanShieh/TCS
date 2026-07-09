@@ -49,6 +49,13 @@ public class LicenseRepository : ILicenseRepository
     public Task<List<LicensePlantRequirement>> GetPlantRequirementsAsync(string licenseType, CancellationToken ct = default) =>
         _db.LicensePlantRequirements.Where(r => r.LicenseType == licenseType).ToListAsync(ct);
 
+    // Plant(MB002) 為 char(10)：SQL Server 等值比較忽略尾端空白，參數毋須補齊
+    public Task<List<LicensePlantRequirement>> GetPlantRequirementsByPlantAsync(string plant, CancellationToken ct = default) =>
+        _db.LicensePlantRequirements
+            .Where(r => r.Plant == plant)
+            .Include(r => r.LicenseMasterNav)
+            .ToListAsync(ct);
+
     public Task<LicensePlantRequirement?> GetPlantRequirementAsync(string licenseType, string plant, CancellationToken ct = default) =>
         _db.LicensePlantRequirements
             .FirstOrDefaultAsync(r => r.LicenseType == licenseType && r.Plant == plant, ct);

@@ -19,6 +19,10 @@ public static class MappingExtensions
         this LicensePlantRequirement r, string? plantName = null) =>
         new(r.LicenseType, r.Plant, r.RequiredCount, plantName);
 
+    /// <summary>廠別視角總覽投影；需求須已 Include LicenseMasterNav</summary>
+    public static PlantRequirementOverviewDto ToOverviewDto(this LicensePlantRequirement r) =>
+        new(r.LicenseType, r.LicenseMasterNav?.Description, r.RequiredCount);
+
     // ── TrainingDetail ─────────────────────────────────────────────────────
 
     public static TrainingDetailDto ToDto(this TrainingDetail d) =>

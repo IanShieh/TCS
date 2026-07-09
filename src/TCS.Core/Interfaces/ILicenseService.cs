@@ -13,6 +13,8 @@ public interface ILicenseService
     Task DeleteAsync(string licenseType, CancellationToken ct = default);
 
     Task<List<LicensePlantRequirementDto>> GetPlantRequirementsAsync(string licenseType, CancellationToken ct = default);
+    /// <summary>廠別需求總覽：依廠別反查證照需求（自然排序）</summary>
+    Task<List<PlantRequirementOverviewDto>> GetRequirementsByPlantAsync(string plant, CancellationToken ct = default);
     Task<LicensePlantRequirementDto> CreatePlantRequirementAsync(CreateLicensePlantRequirementRequest req, CancellationToken ct = default);
     Task<LicensePlantRequirementDto> UpdatePlantRequirementAsync(UpdateLicensePlantRequirementRequest req, CancellationToken ct = default);
     Task DeletePlantRequirementAsync(string licenseType, string plant, CancellationToken ct = default);

@@ -9,6 +9,6 @@ public class UpdateLicensePlantRequirementValidator : AbstractValidator<UpdateLi
     public UpdateLicensePlantRequirementValidator()
     {
         RuleFor(x => x.RequiredCount)
-            .GreaterThanOrEqualTo(0).WithMessage("需求數量不可小於 0");
+            .GreaterThanOrEqualTo(1).WithMessage("需求數量必須為 1 以上");
     }
 }

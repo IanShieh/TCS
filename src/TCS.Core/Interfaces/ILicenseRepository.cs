@@ -14,6 +14,8 @@ public interface ILicenseRepository
     Task<bool> HasChildLicensesAsync(string licenseType, CancellationToken ct = default);
 
     Task<List<LicensePlantRequirement>> GetPlantRequirementsAsync(string licenseType, CancellationToken ct = default);
+    /// <summary>依廠別反查需求（含證照主檔導覽屬性；廠別需求總覽用）</summary>
+    Task<List<LicensePlantRequirement>> GetPlantRequirementsByPlantAsync(string plant, CancellationToken ct = default);
     Task<LicensePlantRequirement?> GetPlantRequirementAsync(string licenseType, string plant, CancellationToken ct = default);
     Task AddPlantRequirementAsync(LicensePlantRequirement entity, CancellationToken ct = default);
     Task UpdatePlantRequirementAsync(LicensePlantRequirement entity, CancellationToken ct = default);

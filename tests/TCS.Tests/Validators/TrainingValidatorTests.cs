@@ -249,17 +249,33 @@ public class TrainingValidatorTests
     }
 
     [Fact]
-    public void PlantReq_ZeroRequiredCount_IsValid()
+    public void PlantReq_ZeroRequiredCount_IsInvalid()
     {
-        _createPlantReq.Validate(new CreateLicensePlantRequirementRequest("1.1", "P001", 0)).IsValid.Should().BeTrue();
+        var result = _createPlantReq.Validate(new CreateLicensePlantRequirementRequest("1.1", "P001", 0));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "RequiredCount");
+    }
+
+    [Fact]
+    public void PlantReq_OneRequiredCount_IsValid()
+    {
+        _createPlantReq.Validate(new CreateLicensePlantRequirementRequest("1.1", "P001", 1)).IsValid.Should().BeTrue();
     }
 
     // ── UpdateLicensePlantRequirementValidator ─────────────────────────────
 
     [Fact]
-    public void UpdatePlantReq_ZeroCount_IsValid()
+    public void UpdatePlantReq_ZeroCount_IsInvalid()
     {
-        _updatePlantReq.Validate(new UpdateLicensePlantRequirementRequest("1.1", "P001", 0)).IsValid.Should().BeTrue();
+        var result = _updatePlantReq.Validate(new UpdateLicensePlantRequirementRequest("1.1", "P001", 0));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "RequiredCount");
+    }
+
+    [Fact]
+    public void UpdatePlantReq_OneCount_IsValid()
+    {
+        _updatePlantReq.Validate(new UpdateLicensePlantRequirementRequest("1.1", "P001", 1)).IsValid.Should().BeTrue();
     }
 
     [Fact]

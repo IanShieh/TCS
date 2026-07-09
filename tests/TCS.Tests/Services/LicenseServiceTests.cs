@@ -196,4 +196,38 @@ public class LicenseServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             svc.UpdatePlantRequirementAsync(new UpdateLicensePlantRequirementRequest("1.1", "P99", 10)));
     }
+
+    // ── RequirementsByPlant（廠別需求總覽，todo-2026-07-09 T3）────────────────
+
+    [Fact]
+    public async Task GetRequirementsByPlant_MapsDescriptionAndNaturalSorts()
+    {
+        // 自然排序：1.1 → 3.2 → 11.2（字串排序會錯排 11.2 在 3.2 前）
+        var requirements = new List<LicensePlantRequirement>
+        {
+            new() { LicenseType = "11.2", Plant = "P01", RequiredCount = 2,
+                    LicenseMasterNav = new LicenseMaster { LicenseType = "11.2", Description = "堆高機" } },
+            new() { LicenseType = "1.1", Plant = "P01", RequiredCount = 5,
+                    LicenseMasterNav = new LicenseMaster { LicenseType = "1.1", Description = "低壓電氣作業" } },
+            new() { LicenseType = "3.2", Plant = "P01", RequiredCount = 1,
+                    LicenseMasterNav = new LicenseMaster { LicenseType = "3.2", Description = "天車" } }
+        };
+        var licRepo = new Mock<ILicenseRepository>();
+        licRepo.Setup(r => r.GetPlantRequirementsByPlantAsync("P01", default)).ReturnsAsync(requirements);
+        var svc = new LicenseService(licRepo.Object, Mock.Of<IPlantRepository>());
+        var dtos = await svc.GetRequirementsByPlantAsync("P01");
+        dtos.Select(d => d.LicenseType).Should().Equal("1.1", "3.2", "11.2");
+        dtos[0].Description.Should().Be("低壓電氣作業");
+        dtos[0].RequiredCount.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task GetRequirementsByPlant_NoRequirements_ReturnsEmptyList()
+    {
+        var licRepo = new Mock<ILicenseRepository>();
+        licRepo.Setup(r => r.GetPlantRequirementsByPlantAsync("P99", default)).ReturnsAsync([]);
+        var svc = new LicenseService(licRepo.Object, Mock.Of<IPlantRepository>());
+        var dtos = await svc.GetRequirementsByPlantAsync("P99");
+        dtos.Should().BeEmpty();
+    }
 }

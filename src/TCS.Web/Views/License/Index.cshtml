@@ -80,11 +80,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>廠別需求 <small class="text-muted ms-1" id="req-license-label"></small></span>
-            <div class="btn-group">
-                <button id="btn-req-add" class="btn btn-sm btn-outline-primary" disabled title="新增">＋</button>
-                <button id="btn-req-edit" class="btn btn-sm btn-outline-warning" disabled title="修改">✎</button>
-                <button id="btn-req-delete" class="btn btn-sm btn-outline-danger" disabled title="刪除">✗</button>
-            </div>
+            <small class="text-muted">唯讀檢視——維護請至「<a href="@(Context.Request.PathBase)/PlantRequirement">廠別需求</a>」</small>
         </div>
         <div class="card-body p-0">
             <table class="table table-bordered table-hover mb-0" id="req-table">
@@ -148,46 +144,14 @@
     </div>
 </div>
 
-<!-- Plant Requirement Modal -->
-<div class="modal fade" id="req-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="req-form">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="req-modal-title">新增廠別需求</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="req-modal-error" class="alert alert-danger d-none"></div>
-                    <div class="mb-3">
-                        <label class="form-label">廠別 <span class="text-danger">*</span></label>
-                        <select id="m-Plant" class="form-select" required></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">需求數 <span class="text-danger">*</span></label>
-                        <input type="number" id="m-RequiredCount" class="form-control" min="0" required />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">儲存</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <style>
         #license-table tbody tr { cursor: pointer; }
-        #req-table tbody tr { cursor: pointer; }
 
-        #license-table tbody tr.row-selected > td,
-        #req-table tbody tr.row-selected > td {
+        #license-table tbody tr.row-selected > td {
             background-color: #cfe2ff;
         }
-        #license-table tbody tr.row-selected > td:first-child,
-        #req-table tbody tr.row-selected > td:first-child {
+        #license-table tbody tr.row-selected > td:first-child {
             border-left: 3px solid #0d6efd;
         }
     </style>
