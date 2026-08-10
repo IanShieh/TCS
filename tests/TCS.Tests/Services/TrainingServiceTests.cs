@@ -655,6 +655,7 @@ public class TrainingServiceTests
         var query = new TrainingSearchQuery { ExpiredOnly = true };
         var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
 
-        result.Items.Should().ContainSingle(i => i.EmployeeId == "E001");
+        result.Items.Should().HaveCount(1);
+        result.Items.Single().EmployeeId.Should().Be("E001");
     }
 }
