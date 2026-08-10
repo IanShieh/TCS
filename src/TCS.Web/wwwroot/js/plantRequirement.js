@@ -148,7 +148,7 @@ async function exportExcel() {
     const a = document.createElement('a');
     a.href = url;
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    a.download = `plant_requirements_${currentPlant}_${today}.xlsx`;
+    a.download = `plant_requirements_${currentPlant.trim()}_${today}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

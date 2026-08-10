@@ -44,6 +44,6 @@ public class ExportController : ControllerBase
         var bytes = _excelSvc.ExportPlantRequirements(rows);
         return File(bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"plant_requirements_{plant}_{DateTime.Today:yyyyMMdd}.xlsx");
+            $"plant_requirements_{plant.Trim()}_{DateTime.Today:yyyyMMdd}.xlsx");
     }
 }
