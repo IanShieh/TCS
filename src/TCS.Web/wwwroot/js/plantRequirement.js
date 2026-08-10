@@ -138,6 +138,23 @@ async function deleteSelectedRequirement() {
     Toast.error(await readErrorMessage(res, '刪除失敗'));
 }
 
+// ---------- Excel 匯出 ----------
+async function exportExcel() {
+    if (!currentPlant) return;
+    const res = await fetch(`${BASE}/api/export/plant-requirements?plant=${encodeURIComponent(currentPlant)}`);
+    if (!res.ok) { Toast.error(await readErrorMessage(res, '匯出失敗')); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.download = `plant_requirements_${currentPlant}_${today}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // ---------- 共用 ----------
 async function readErrorMessage(res, fallback) {
     try {
@@ -159,15 +176,17 @@ $(function () {
     TcsAuth.applyButtonGuards({
         '#btn-add':    '新增',
         '#btn-edit':   '修改',
-        '#btn-delete': '刪除'
+        '#btn-delete': '刪除',
+        '#btn-export': '列印'
     });
 
     $('#plant-select').on('change', function () {
         currentPlant = $(this).val();
         if (currentPlant) {
             TcsAuth.enableIfAllowed('#btn-add');
+            TcsAuth.enableIfAllowed('#btn-export');
         } else {
-            $('#btn-add').prop('disabled', true);
+            $('#btn-add, #btn-export').prop('disabled', true);
         }
         loadRequirements();
     });
@@ -175,6 +194,7 @@ $(function () {
     $('#btn-add').on('click', () => openRequirementModal('create'));
     $('#btn-edit').on('click', () => { if (selectedRequirement) openRequirementModal('edit', selectedRequirement); });
     $('#btn-delete').on('click', deleteSelectedRequirement);
+    $('#btn-export').on('click', exportExcel);
     $('#req-form').on('submit', submitRequirement);
 
     loadPlants();
