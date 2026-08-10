@@ -74,7 +74,7 @@ function renderTable(items) {
     const $tbody = $('#training-table tbody').empty();
     if (!items.length) {
         $tbody.append($('<tr></tr>').append(
-            $('<td colspan="12" class="text-center text-muted"></td>').text('（無資料）')
+            $('<td colspan="13" class="text-center text-muted"></td>').text('（無資料）')
         ));
         return;
     }
@@ -92,6 +92,11 @@ function renderTable(items) {
         $('<td></td>').text(r.NextReviewDate ?? '—').appendTo($tr);
         $('<td></td>').text(r.Plant ?? '').appendTo($tr);
         $('<td></td>').text(r.Remark ?? '').appendTo($tr);
+        // OverallStatus 數字→標籤（0=回訓完成 1=待回訓 2=已過期 3=無→空白）
+        const statusLabel = { 0: '回訓完成', 1: '待回訓', 2: '已過期' }[r.OverallStatus] ?? '';
+        $('<td></td>').text(statusLabel)
+            .toggleClass('text-danger fw-bold', r.OverallStatus === 2)
+            .appendTo($tr);
         $tr.on('click', () => selectHeader($tr, r));
         $tbody.append($tr);
     });

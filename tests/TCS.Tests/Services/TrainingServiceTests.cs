@@ -632,4 +632,29 @@ public class TrainingServiceTests
         result.Items.Should().HaveCount(1);
         repo.Verify(r => r.GetHeadersAsync(null, "3.1", default), Times.Once);
     }
+
+    [Fact]
+    public async Task GetHeaders_ExpiredOnly_FindsExpired_ReacquiredEscapes()
+    {
+        // E001：2020 取證 + Years=1 → 已過期；E002：同樣過期後重考 → 脫離已過期
+        var expiredHeader = new TrainingHeader { EmployeeId = "E001", LicenseType = "1.1", Hours = 8, Years = 1 };
+        var reacquiredHeader = new TrainingHeader { EmployeeId = "E002", LicenseType = "1.1", Hours = 8, Years = 1 };
+        var repo = new Mock<ITrainingRepository>();
+        repo.Setup(r => r.GetHeadersAsync(It.IsAny<string?>(), It.IsAny<string?>(), default))
+            .ReturnsAsync(new List<TrainingHeader> { expiredHeader, reacquiredHeader });
+        repo.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail>
+        {
+            new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = new DateTime(2020, 1, 1), TrainingType = 1, Hours = 0m }
+        });
+        repo.Setup(r => r.GetDetailsAsync("E002", "1.1", default)).ReturnsAsync(new List<TrainingDetail>
+        {
+            new() { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = new DateTime(2020, 1, 1), TrainingType = 1, Hours = 0m },
+            new() { EmployeeId = "E002", LicenseType = "1.1", TrainingDate = DateTime.Today.AddMonths(-1), TrainingType = 1, Hours = 0m }
+        });
+
+        var query = new TrainingSearchQuery { ExpiredOnly = true };
+        var result = await BuildSvc(repo.Object).GetHeadersAsync(null, null, 1, 10, query);
+
+        result.Items.Should().ContainSingle(i => i.EmployeeId == "E001");
+    }
 }
