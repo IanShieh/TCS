@@ -676,10 +676,23 @@ async function populateAdvancedDropdowns() {
         $('<option></option>').val(p.PlantCode).text(label).appendTo($plant);
     });
 
-    // 證照（僅小類）
+    // 證照：大類 optgroup（大類本身可選 = 含其下全部），組內列小類（2026-08-07 T3）
     const $lic = $('#adv-LicenseType').empty();
     $('<option></option>').val('').text('（不限）').appendTo($lic);
-    (cachedMinorLicenses || []).forEach(x => {
+    const cats = cachedAllLicenses.filter(x => x.IsCategory || INTEGER_REGEX.test(x.LicenseType));
+    const covered = new Set();
+    cats.forEach(cat => {
+        const $grp = $('<optgroup>').attr('label', `${cat.LicenseType} ${cat.Description}`);
+        $('<option></option>').val(cat.LicenseType).text(`${cat.LicenseType} ${cat.Description}（全部）`).appendTo($grp);
+        covered.add(cat.LicenseType);
+        cachedAllLicenses.filter(x => x.Category === cat.LicenseType).forEach(x => {
+            $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($grp);
+            covered.add(x.LicenseType);
+        });
+        $grp.appendTo($lic);
+    });
+    // 未歸入任何大類的小類（防呆）：附掛於清單尾端
+    (cachedMinorLicenses || []).filter(x => !covered.has(x.LicenseType)).forEach(x => {
         $('<option></option>').val(x.LicenseType).text(`${x.LicenseType} ${x.Description}`).appendTo($lic);
     });
 }
