@@ -481,9 +481,9 @@ function syncHoursRequired() {
     $('#m-Hours-required').toggleClass('d-none', !isRetrain);
 }
 
-function setTrainingTypeLocked(type) {
+function setTrainingType(type, locked) {
     $(`input[name="m-TrainingType"][value="${type}"]`).prop('checked', true);
-    $('input[name="m-TrainingType"]').prop('disabled', true);
+    $('input[name="m-TrainingType"]').prop('disabled', locked);
 }
 
 function openDetailModal(mode, item) {
@@ -493,7 +493,8 @@ function openDetailModal(mode, item) {
 
     if (mode === 'create') {
         $('#m-TrainingDate').val('').prop('readonly', false);
-        setTrainingTypeLocked(currentDetailCount === 0 ? 1 : 2);
+        // 首筆鎖定「取得證照」；第二筆起預設「回訓」但可自由切換（2026-08-07 T4）
+        setTrainingType(currentDetailCount === 0 ? 1 : 2, currentDetailCount === 0);
         // append-only：新增日期必須晚於最後一筆紀錄；首筆無此限制（後端亦會驗證）
         if (currentDetailCount > 0 && latestDetailDate) {
             $('#m-TrainingDate').attr('min', nextDayIso(latestDetailDate));
@@ -503,7 +504,8 @@ function openDetailModal(mode, item) {
         $('#m-Hours').val('');
     } else {
         $('#m-TrainingDate').val(item.TrainingDate).prop('readonly', true).removeAttr('min');
-        setTrainingTypeLocked(item.TrainingType);
+        // 僅最後一筆可修改；單頭僅一筆時該筆即首筆 → 類型鎖定，其餘開放切換
+        setTrainingType(item.TrainingType, currentDetailCount === 1);
         $('#m-Hours').val(item.Hours ?? '');
     }
     syncHoursRequired();
