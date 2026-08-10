@@ -47,14 +47,14 @@ public static class MappingExtensions
         IReadOnlyList<TrainingDetail> details,
         DateOnly today)
     {
-        // anchor = 最早一筆 type 1（取得證照）；每張表頭恰好一筆（§6 規則3 不變式）
-        var initialAcquire = details
+        // anchor = 最新一筆 type 1（取得證照）；過期重考會再新增取得證照，以最新者起算新週期（2026-08-07 T4）
+        var latestAcquire = details
             .Where(d => d.TrainingType == (int)TrainingType.取得證照)
-            .OrderBy(d => d.TrainingDate)
+            .OrderByDescending(d => d.TrainingDate)
             .FirstOrDefault();
 
-        DateOnly? latestAcquireDate = initialAcquire is not null
-            ? DateOnly.FromDateTime(initialAcquire.TrainingDate) : null;
+        DateOnly? latestAcquireDate = latestAcquire is not null
+            ? DateOnly.FromDateTime(latestAcquire.TrainingDate) : null;
 
         // 最後一筆回訓（語意不變）
         var lastRetrain = details
@@ -68,14 +68,14 @@ public static class MappingExtensions
         // 有效時數門檻：Hours 為 null 或 ≤ 0 時視為「無門檻」
         int? hoursThreshold = header.Hours is int h && h > 0 ? h : null;
 
-        // roll-forward 週期推導（§3）：只累加 type 2 時數；達標即前進 anchor，超額滾入（§6 規則2-A）
+        // roll-forward 週期推導（§3）：只累加最新取得證照之後的 type 2 時數；達標即前進 anchor，超額滾入（§6 規則2-A）
         DateOnly? latestAnchor = latestAcquireDate;
         decimal acc = 0m;
-        if (initialAcquire is not null)
+        if (latestAcquire is not null)
         {
             var sessions = details
                 .Where(d => d.TrainingType == (int)TrainingType.回訓
-                            && d.TrainingDate >= initialAcquire.TrainingDate)
+                            && d.TrainingDate >= latestAcquire.TrainingDate)
                 .OrderBy(d => d.TrainingDate);
             foreach (var s in sessions)
             {

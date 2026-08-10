@@ -269,4 +269,52 @@ public class MappingExtensionsTests
         var dto = MakeHeader().ToDto(emp, MakeLicense(), [], new DateOnly(2025, 6, 1));
         dto.Department.Should().Be("製造部");
     }
+
+    // ── 多筆取得證照（2026-08-07 T4：過期重考） ─────────────────────────────
+
+    [Fact]
+    public void ToDto_MultipleAcquires_AnchorIsLatestAcquire()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 1, 1), 2, 8m),
+            D(new DateTime(2024, 5, 1), 1, 0m)   // 過期重考
+        };
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        dto.LatestAcquireDate.Should().Be(new DateOnly(2024, 5, 1));
+        dto.NextReviewDate.Should().Be(new DateOnly(2026, 5, 1));
+    }
+
+    [Fact]
+    public void ToDto_ReacquireAfterExpiry_LeavesExpiredStatus()
+    {
+        // 2020 取證 + Years=2 → 2022 到期即已過期；2024 重考後脫離已過期
+        var expiredOnly = new[] { D(new DateTime(2020, 1, 1), 1, 0m) };
+        MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), expiredOnly, new DateOnly(2024, 6, 1))
+            .OverallStatus.Should().Be(OverallStatus.已過期);
+
+        var reacquired = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2024, 5, 1), 1, 0m)
+        };
+        MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), reacquired, new DateOnly(2024, 6, 1))
+            .OverallStatus.Should().NotBe(OverallStatus.已過期);
+    }
+
+    [Fact]
+    public void ToDto_RetrainsBeforeLatestAcquire_NotAccumulated()
+    {
+        var details = new[]
+        {
+            D(new DateTime(2020, 1, 1), 1, 0m),
+            D(new DateTime(2021, 1, 1), 2, 6m),   // 舊週期回訓，不應累計
+            D(new DateTime(2024, 5, 1), 1, 0m),
+            D(new DateTime(2024, 5, 10), 2, 3m)   // 新週期回訓
+        };
+        var dto = MakeHeader(8, 2).ToDto(null, MakeLicense(8, 2), details, new DateOnly(2024, 6, 1));
+        dto.AccumulatedHours.Should().Be(3m);
+        dto.RemainingHours.Should().Be(5m);
+    }
 }
