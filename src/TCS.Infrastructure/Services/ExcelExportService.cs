@@ -47,6 +47,31 @@ public class ExcelExportService : IExcelExportService
         return ms.ToArray();
     }
 
+    public byte[] ExportPlantRequirements(IReadOnlyList<PlantRequirementOverviewDto> rows)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("廠別需求");
+
+        var headers = new[] { "證照類別", "類別名稱", "需求數" };
+        for (int i = 0; i < headers.Length; i++)
+            ws.Cell(1, i + 1).Value = headers[i];
+
+        int row = 2;
+        foreach (var r in rows)
+        {
+            ws.Cell(row, 1).Value = r.LicenseType;
+            ws.Cell(row, 2).Value = r.Description ?? "";
+            ws.Cell(row, 3).Value = r.RequiredCount;
+            row++;
+        }
+
+        ws.ColumnsUsed().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return ms.ToArray();
+    }
+
     private static string FormatHireDate(string? s) =>
         s?.Length == 8 && s.All(char.IsDigit)
             ? $"{s[..4]}-{s[4..6]}-{s[6..8]}"
