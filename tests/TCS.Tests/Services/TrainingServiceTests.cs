@@ -594,4 +594,42 @@ public class TrainingServiceTests
         var result = await BuildSvc(repo.Object, empRepo: empRepo.Object).GetHeadersAsync(null, null, 1, 10, query);
         result.Items.Select(i => i.EmployeeId).Should().Equal("E001");
     }
+
+    [Fact]
+    public async Task GetHeaders_AdvancedMajorLicenseType_ExpandsToMinorsAndOthers()
+    {
+        // 大類 3 → 含本身掛單、Category=3 小類、3.x 其他證照；不含他類 4.1
+        var repo = HeadersRepo(H("E001", "3"), H("E001", "3.1"), H("E001", "3.0.1"), H("E001", "4.1"));
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("3", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "3", Description = "堆高機" });
+        licenseRepo.Setup(r => r.GetAllAsync(default)).ReturnsAsync(new List<LicenseMaster>
+        {
+            new() { LicenseType = "3", Description = "堆高機" },
+            new() { LicenseType = "3.1", Description = "小類A", Category = "3" },
+            new() { LicenseType = "4.1", Description = "他類小類", Category = "4" }
+        });
+
+        var query = new TrainingSearchQuery { LicenseType = "3" };
+        var result = await BuildSvc(repo.Object, licenseRepo.Object).GetHeadersAsync(null, null, 1, 10, query);
+
+        result.Items.Select(i => i.LicenseType).Should().BeEquivalentTo("3", "3.1", "3.0.1");
+        // 大類不得下推 Repo 做完全比對，須改記憶體展開
+        repo.Verify(r => r.GetHeadersAsync(null, null, default), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetHeaders_AdvancedMinorLicenseType_ExactMatchUnchanged()
+    {
+        var repo = HeadersRepo(H("E001", "3.1"));
+        var licenseRepo = new Mock<ILicenseRepository>();
+        licenseRepo.Setup(r => r.GetByIdAsync("3.1", default))
+            .ReturnsAsync(new LicenseMaster { LicenseType = "3.1", Description = "小類A", Category = "3" });
+
+        var query = new TrainingSearchQuery { LicenseType = "3.1" };
+        var result = await BuildSvc(repo.Object, licenseRepo.Object).GetHeadersAsync(null, null, 1, 10, query);
+
+        result.Items.Should().HaveCount(1);
+        repo.Verify(r => r.GetHeadersAsync(null, "3.1", default), Times.Once);
+    }
 }

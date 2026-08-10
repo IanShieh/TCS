@@ -33,7 +33,33 @@ public class TrainingService : ITrainingService
         var effEmployeeId = advancedActive ? query!.EmployeeId : employeeId;
         var effLicenseType = advancedActive ? query!.LicenseType : licenseType;
 
-        var headers = await _repo.GetHeadersAsync(effEmployeeId, effLicenseType, ct);
+        // 大類展開（2026-08-07 T3）：選大類 → 含本身 + Category 小類 + 「碼.」前綴其他證照（99.x / X.0.x）
+        // 跨 LicenseMaster 判定屬 Service 職責（讀取分層規則）；非大類維持 Repo 完全比對
+        string? repoLicenseType = effLicenseType;
+        HashSet<string>? majorExpansion = null;
+        string? majorPrefix = null;
+        if (!string.IsNullOrWhiteSpace(effLicenseType))
+        {
+            var lic = await _licenseRepo.GetByIdAsync(effLicenseType, ct);
+            if (lic is not null && MappingExtensions.IsLicenseTypeCategory(lic.LicenseType))
+            {
+                repoLicenseType = null;
+                majorPrefix = effLicenseType + ".";
+                var allLicenses = await _licenseRepo.GetAllAsync(ct);
+                majorExpansion = allLicenses
+                    .Where(m => m.Category == effLicenseType)
+                    .Select(m => m.LicenseType)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                majorExpansion.Add(effLicenseType);
+            }
+        }
+
+        var headers = await _repo.GetHeadersAsync(effEmployeeId, repoLicenseType, ct);
+        if (majorExpansion is not null)
+            headers = headers
+                .Where(h => majorExpansion.Contains(h.LicenseType)
+                            || h.LicenseType.StartsWith(majorPrefix!, StringComparison.Ordinal))
+                .ToList();
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         var dtos = new List<TrainingHeaderDto>();
