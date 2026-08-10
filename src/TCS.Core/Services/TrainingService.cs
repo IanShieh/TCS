@@ -255,11 +255,13 @@ public class TrainingService : ITrainingService
         var detail = await _repo.GetDetailAsync(req.EmployeeId, req.LicenseType, trainingDateTime, ct)
             ?? throw new KeyNotFoundException($"TrainingDetail ({req.EmployeeId},{req.LicenseType},{req.TrainingDate:yyyy-MM-dd}) not found.");
 
-        // 首筆（最早一筆）鎖定「取得證照」；其餘筆類型可自由修改（2026-08-07 T4）
+        // 首筆（最早一筆）只擋「從取得證照改走」；類型不變（含 legacy 資料違反不變式的情形）或改回取得證照皆放行（2026-08-07 T4 回歸修正）
         var details = await _repo.GetDetailsAsync(req.EmployeeId, req.LicenseType, ct);
         var earliest = details.Min(d => d.TrainingDate);
-        if (detail.TrainingDate == earliest && req.TrainingType != (int)TrainingType.取得證照)
-            throw new InvalidOperationException("首筆受訓記錄必須維持「取得證照」（TrainingType = 1）。");
+        if (detail.TrainingDate == earliest
+            && req.TrainingType != detail.TrainingType
+            && req.TrainingType != (int)TrainingType.取得證照)
+            throw new InvalidOperationException("首筆受訓記錄類型僅能維持或改回「取得證照」（TrainingType = 1）。");
 
         detail.TrainingType = req.TrainingType;
         detail.Hours = req.Hours;

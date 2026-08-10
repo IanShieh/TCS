@@ -415,6 +415,49 @@ public class TrainingServiceTests
         dto.Hours.Should().Be(2m);
     }
 
+    [Fact]
+    public async Task UpdateDetail_LegacyFirstRecordType2_KeepType2_UpdatesHours()
+    {
+        var date = DateTime.Today.AddMonths(-2);
+        var detail = new TrainingDetail
+        {
+            EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date,
+            TrainingType = 2, Hours = 4m
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail> { detail });
+        repoMock.Setup(r => r.UpdateDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        // legacy 首筆為回訓（違反不變式的歷史資料）：類型不變、只改時數 → 應放行
+        var req = new UpdateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(date), 2, 6m);
+        var dto = await BuildSvc(repoMock.Object).UpdateDetailAsync(req);
+
+        dto.TrainingType.Should().Be(2);
+        dto.Hours.Should().Be(6m);
+    }
+
+    [Fact]
+    public async Task UpdateDetail_LegacyFirstRecordType2_UpgradeToType1_Succeeds()
+    {
+        var date = DateTime.Today.AddMonths(-2);
+        var detail = new TrainingDetail
+        {
+            EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date,
+            TrainingType = 2, Hours = 4m
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail> { detail });
+        repoMock.Setup(r => r.UpdateDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        // legacy 首筆為回訓：修復為取得證照 → 應放行
+        var req = new UpdateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(date), 1, 6m);
+        var dto = await BuildSvc(repoMock.Object).UpdateDetailAsync(req);
+
+        dto.TrainingType.Should().Be(1);
+    }
+
     // ── GetHeaders：排序 / 進階搜尋 ──────────────────────────────────────────
 
     private static TrainingHeader H(string employeeId, string licenseType, string? plant = null) =>
