@@ -216,7 +216,7 @@ public class TrainingServiceTests
     }
 
     [Fact]
-    public async Task AddDetail_SecondRecordType1_ThrowsInvalidOperation()
+    public async Task AddDetail_SecondRecordType1_Reacquire_Succeeds()
     {
         var existing = DateTime.Today.AddMonths(-3);
         var header = new TrainingHeader
@@ -229,11 +229,12 @@ public class TrainingServiceTests
         };
         var repoMock = new Mock<ITrainingRepository>();
         repoMock.Setup(r => r.GetHeaderAsync("E001", "1.1", true, default)).ReturnsAsync(header);
+        repoMock.Setup(r => r.AddDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
 
-        var req = new CreateTrainingDetailRequest(
-            "E001", "1.1", DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 1, 4m);
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => BuildSvc(repoMock.Object).AddDetailAsync(req));
+        // 過期重考：已有紀錄仍可新增「取得證照」（2026-08-07 T4）
+        var req = new CreateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(existing.AddMonths(1)), 1, null);
+        var dto = await BuildSvc(repoMock.Object).AddDetailAsync(req);
+        dto.TrainingType.Should().Be(1);
     }
 
     [Fact]
@@ -351,8 +352,9 @@ public class TrainingServiceTests
     // ── UpdateDetail ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateDetail_DoesNotChangeTrainingType_OnlyHours()
+    public async Task UpdateDetail_NonFirstRecord_ChangesTrainingType()
     {
+        var first = DateTime.Today.AddMonths(-4);
         var date = DateTime.Today.AddMonths(-2);
         var detail = new TrainingDetail
         {
@@ -361,15 +363,56 @@ public class TrainingServiceTests
         };
         var repoMock = new Mock<ITrainingRepository>();
         repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail>
+        {
+            new() { EmployeeId = "E001", LicenseType = "1.1", TrainingDate = first, TrainingType = 1, Hours = 0m },
+            detail
+        });
         repoMock.Setup(r => r.UpdateDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
 
-        // 請求嘗試把 type 改成 1，且改時數為 6
-        var req = new UpdateTrainingDetailRequest(
-            "E001", "1.1", DateOnly.FromDateTime(date), 1, 6m);
+        // 非首筆：類型 2 → 1（過期重考補登）
+        var req = new UpdateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(date), 1, 6m);
         var dto = await BuildSvc(repoMock.Object).UpdateDetailAsync(req);
 
-        dto.TrainingType.Should().Be(2);   // type 鎖定，忽略請求的 1
-        dto.Hours.Should().Be(6m);         // hours 仍更新
+        dto.TrainingType.Should().Be(1);
+        dto.Hours.Should().Be(6m);
+    }
+
+    [Fact]
+    public async Task UpdateDetail_FirstRecord_TypeChangeThrows()
+    {
+        var date = DateTime.Today.AddMonths(-2);
+        var detail = new TrainingDetail
+        {
+            EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date,
+            TrainingType = 1, Hours = 0m
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail> { detail });
+
+        // 首筆改回訓 → 拒絕（首筆不變式）
+        var req = new UpdateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(date), 2, 6m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => BuildSvc(repoMock.Object).UpdateDetailAsync(req));
+    }
+
+    [Fact]
+    public async Task UpdateDetail_FirstRecord_KeepType1_UpdatesHours()
+    {
+        var date = DateTime.Today.AddMonths(-2);
+        var detail = new TrainingDetail
+        {
+            EmployeeId = "E001", LicenseType = "1.1", TrainingDate = date,
+            TrainingType = 1, Hours = 0m
+        };
+        var repoMock = new Mock<ITrainingRepository>();
+        repoMock.Setup(r => r.GetDetailAsync("E001", "1.1", date, default)).ReturnsAsync(detail);
+        repoMock.Setup(r => r.GetDetailsAsync("E001", "1.1", default)).ReturnsAsync(new List<TrainingDetail> { detail });
+        repoMock.Setup(r => r.UpdateDetailAsync(It.IsAny<TrainingDetail>(), default)).Returns(Task.CompletedTask);
+
+        var req = new UpdateTrainingDetailRequest("E001", "1.1", DateOnly.FromDateTime(date), 1, 2m);
+        var dto = await BuildSvc(repoMock.Object).UpdateDetailAsync(req);
+        dto.Hours.Should().Be(2m);
     }
 
     // ── GetHeaders：排序 / 進階搜尋 ──────────────────────────────────────────

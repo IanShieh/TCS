@@ -192,13 +192,9 @@ public class TrainingService : ITrainingService
         var header = await _repo.GetHeaderAsync(req.EmployeeId, req.LicenseType, includeDetails: true, ct)
             ?? throw new KeyNotFoundException($"TrainingHeader ({req.EmployeeId},{req.LicenseType}) not found.");
 
-        // §6 規則3: 首筆必須是 type 1（取得證照）
+        // 首筆必須是 type 1（取得證照）；第二筆起類型不限（過期重考可再取證，2026-08-07 T4）
         if (!header.Details.Any() && req.TrainingType != (int)TrainingType.取得證照)
             throw new InvalidOperationException("第一筆受訓記錄必須為「取得證照」（TrainingType = 1）。");
-
-        // §6 規則3: 第二筆起必須是 type 2（回訓），維持單一 type 1 不變式
-        if (header.Details.Any() && req.TrainingType == (int)TrainingType.取得證照)
-            throw new InvalidOperationException("已有受訓記錄，後續只能新增「回訓」（TrainingType = 2）。");
 
         // Check for duplicate date
         var trainingDateTime = req.TrainingDate.ToDateTime(TimeOnly.MinValue);
@@ -232,7 +228,14 @@ public class TrainingService : ITrainingService
         var trainingDateTime = req.TrainingDate.ToDateTime(TimeOnly.MinValue);
         var detail = await _repo.GetDetailAsync(req.EmployeeId, req.LicenseType, trainingDateTime, ct)
             ?? throw new KeyNotFoundException($"TrainingDetail ({req.EmployeeId},{req.LicenseType},{req.TrainingDate:yyyy-MM-dd}) not found.");
-        // §6 規則3: TrainingType 鎖定不可改（首筆永遠 1、其餘永遠 2），僅更新 Hours
+
+        // 首筆（最早一筆）鎖定「取得證照」；其餘筆類型可自由修改（2026-08-07 T4）
+        var details = await _repo.GetDetailsAsync(req.EmployeeId, req.LicenseType, ct);
+        var earliest = details.Min(d => d.TrainingDate);
+        if (detail.TrainingDate == earliest && req.TrainingType != (int)TrainingType.取得證照)
+            throw new InvalidOperationException("首筆受訓記錄必須維持「取得證照」（TrainingType = 1）。");
+
+        detail.TrainingType = req.TrainingType;
         detail.Hours = req.Hours;
         await _repo.UpdateDetailAsync(detail, ct);
         return detail.ToDto();
